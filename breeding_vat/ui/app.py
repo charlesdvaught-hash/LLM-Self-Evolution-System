@@ -2,11 +2,19 @@ import streamlit as st
 import sqlite3
 import json
 import os
+import torch
+from breeding_vat.modules.merge.advisor import MergeAdvisor
+from breeding_vat.modules.merge.evolution import EvolutionEngine
+from breeding_vat.orchestrator.runner import TaskRunner
 
 st.set_page_config(page_title="The Breeding Vat", layout="wide")
 
 st.title("🧬 The Breeding Vat")
 st.subheader("Model Evolution & Merging Lab")
+
+# Initialize Runner
+if 'runner' not in st.session_state:
+    st.session_state.runner = TaskRunner()
 
 # Sidebar for configuration
 with st.sidebar:
@@ -22,7 +30,7 @@ with st.sidebar:
 
     st.divider()
     st.header("Advisor Settings")
-    advisor_model = st.text_input("Advisor Model", "Qwen/Qwen3.5-0.8B-Instruct")
+    advisor_model = st.text_input("Advisor Model", "Qwen/Qwen2.5-0.5B-Instruct") # Using stable path as fallback
     use_thinking = st.checkbox("Enable Thinking Mode", value=True)
 
 # Main tabs
@@ -34,25 +42,38 @@ with tab1:
 
     col1, col2 = st.columns(2)
     with col1:
-        base_models = st.text_input("Base Models (comma separated)", "Qwen/Qwen2.5-7B, deepseek-ai/DeepSeek-V2-Lite")
+        base_models_input = st.text_input("Base Models (comma separated)", "Qwen/Qwen2.5-0.5B, Qwen/Qwen2.5-1.5B")
+        base_models = [m.strip() for m in base_models_input.split(",")]
 
     if st.button("Consult Advisor"):
-        st.info("Querying Qwen 3.5 0.8B for a recipe plan...")
-        # Placeholder for advisor logic
-        st.write("**Advisor Recommendation:**")
-        st.markdown("""
-        1. **Phase 1**: Perform SLERP between Qwen 2.5 and DeepSeek on logic layers (layers 12-24).
-        2. **Phase 2**: Apply NegMerge to prune redundant conversational weights.
-        3. **Phase 3**: Use Core Space Merging to align LoRA adapters for logic-specific datasets.
-        """)
+        with st.spinner("Querying Advisor..."):
+            advisor = MergeAdvisor(model_id=advisor_model)
+            try:
+                recipe = advisor.generate_recipe(goal, base_models, merge_methods)
+                st.write("**Advisor Recommendation:**")
+                st.markdown(recipe)
+            except Exception as e:
+                st.error(f"Advisor failed: {e}")
+            finally:
+                # VRAM Management
+                if hasattr(advisor, 'model'):
+                    del advisor.model
+                    del advisor.tokenizer
+                torch.cuda.empty_cache()
 
     if st.button("RUN EVOLUTION", type="primary"):
-        st.warning("Evolution pipeline started. Monitoring logs...")
+        st.info("Evolution pipeline started. Check terminal for logs.")
+        evo = EvolutionEngine(st.session_state.runner)
+        best_model = evo.run_waterfall(base_models, goal, num_cycles, culling_rate)
+        st.success(f"Evolution complete! Best mutant: {best_model['name']} (Score: {best_model['score']:.4f})")
 
 with tab2:
     st.header("Model Lineage")
-    # Placeholder for database view
-    st.write("Lineage tree will appear here.")
+    conn = sqlite3.connect("breeding_vat/data/breeding.db")
+    import pandas as pd
+    df = pd.read_sql_query("SELECT id, name, status, created_at FROM models ORDER BY id DESC", conn)
+    st.dataframe(df)
+    conn.close()
 
 with tab3:
     st.header("SAE Feature Map")

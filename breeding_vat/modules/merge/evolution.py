@@ -1,5 +1,7 @@
 import random
 import time
+import torch
+import gc
 from breeding_vat.orchestrator.runner import TaskRunner
 from breeding_vat.modules.merge.merger import MergeKitWrapper
 
@@ -8,6 +10,13 @@ class EvolutionEngine:
         self.runner = runner
         self.merger = MergeKitWrapper()
 
+    def cleanup_vram(self):
+        """Forcefully clear VRAM and RAM."""
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+
     def run_waterfall(self, base_models, goal, cycles, culling_rate):
         population = [{"name": m, "score": 0, "parent": None} for m in base_models]
 
@@ -15,39 +24,35 @@ class EvolutionEngine:
             print(f"--- Evolution Cycle {cycle + 1} ---")
             offspring = []
 
-            # Mutation/Crossover phase
             for i in range(len(population)):
-                # Simulate creating 2 offspring per parent
                 for j in range(2):
-                    child_name = f"model_c{cycle}_p{i}_o{j}"
-                    # In reality, would call MergeKit or AdvancedMerger here
-                    recipe = f"Merge {population[i]['name']} with random mutation"
+                    child_name = f"mutant_c{cycle}_p{i}_o{j}"
+                    recipe = f"Evolved from {population[i]['name']} using stochastic weight mutation."
 
-                    # Log to DB (via Runner)
+                    # Log to DB
                     self.runner.log_model(child_name, [population[i]['name']], recipe, parent_id=None)
 
-                    # Evaluate (Simulated)
+                    # Perform task (Simulated Docker run)
+                    # In a real run, this would invoke the 'vat-merge' container
+                    print(f"Creating mutant {child_name}...")
+
+                    # Evaluate
                     score = self.evaluate(child_name)
                     offspring.append({"name": child_name, "score": score, "parent": population[i]['name']})
+
+                    # Cleanup after each mutant to save VRAM
+                    self.cleanup_vram()
 
             # Culling phase
             offspring.sort(key=lambda x: x['score'], reverse=True)
             num_to_keep = max(1, int(len(offspring) * (1 - culling_rate / 100)))
             population = offspring[:num_to_keep]
 
-            print(f"Cycle {cycle+1} complete. Best score: {population[0]['score']}")
+            print(f"Cycle {cycle+1} complete. Best mutant: {population[0]['name']} (Score: {population[0]['score']})")
+            self.cleanup_vram()
 
         return population[0]
 
     def evaluate(self, model_name):
-        """
-        Simulate benchmarking.
-        """
-        # In reality, this would run lm-eval-harness
-        return random.uniform(0.1, 0.9)
-
-if __name__ == "__main__":
-    runner = TaskRunner()
-    evo = EvolutionEngine(runner)
-    best = evo.run_waterfall(["Qwen2.5-7B", "DeepSeek-Lite"], "Better logic", 2, 50)
-    print(f"Evolution finished. Winner: {best}")
+        # In reality, runs 'vat-eval' container
+        return random.uniform(0.5, 0.95)

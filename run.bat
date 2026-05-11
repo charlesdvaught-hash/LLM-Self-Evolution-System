@@ -1,0 +1,3 @@
+@echo off
+echo [🧬 The Breeding Vat] Starting UI...
+streamlit run breeding_vat/ui/app.py

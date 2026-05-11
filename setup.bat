@@ -15,19 +15,21 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: Install base requirements
+:: Install base requirements for the Host (UI and Orchestrator)
 echo Installing core dependencies...
-pip install -r requirements.txt
+pip install streamlit transformers torch accelerate pyyaml pandas
 
 :: Initialize database
 echo Initializing database...
 python -c "from breeding_vat.orchestrator.runner import TaskRunner; TaskRunner()"
 
-:: Build UI container (optional, can also run locally)
-echo Building UI container...
-docker build -t breeding-vat-ui .
+:: Build specialized containers
+echo Building module containers...
+docker build -t vat-merge -f docker/Dockerfile.merge .
+docker build -t vat-eval -f docker/Dockerfile.eval .
+docker build -t vat-sae -f docker/Dockerfile.sae .
 
 echo.
 echo [✓] Setup Complete.
-echo To start the app, run: streamlit run breeding_vat/ui/app.py
+echo To start the app, run: run.bat
 pause

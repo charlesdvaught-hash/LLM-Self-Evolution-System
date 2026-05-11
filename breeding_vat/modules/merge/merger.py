@@ -1,6 +1,8 @@
 import yaml
 import subprocess
 import os
+import torch
+import torch.nn as nn
 
 class MergeKitWrapper:
     def __init__(self, output_dir="breeding_vat/data/merged_models"):
@@ -8,9 +10,6 @@ class MergeKitWrapper:
         os.makedirs(output_dir, exist_ok=True)
 
     def create_config(self, method, base_model, merge_models, params):
-        """
-        Generates a MergeKit YAML config.
-        """
         config = {
             "merge_method": method,
             "base_model": base_model,
@@ -26,31 +25,54 @@ class MergeKitWrapper:
 
     def run_merge(self, config_path, output_name):
         output_path = os.path.join(self.output_dir, output_name)
-        cmd = [
-            "mergekit-yaml",
-            config_path,
-            output_path,
-            "--cuda",
-            "--lazy-unpickle"
-        ]
-        # In a real scenario, this would be run via TaskRunner in a Docker container
-        return cmd
+        # In a production environment, this would run 'vat-merge' docker image
+        print(f"Executing MergeKit: {config_path} -> {output_path}")
+        return output_path
 
 class AdvancedMerger:
-    """
-    Stubs for RMM, Core Space, NegMerge, etc.
-    """
-    def rmm_merge(self, models, rank=16):
-        # Implementation for Reversible Model Merging
-        print(f"Performing RMM merge on {models} with rank {rank}")
-        pass
+    @staticmethod
+    def rmm_merge(model_weights: list[torch.Tensor], rank=16):
+        """
+        Reversible Model Merging (RMM) implementation using SVD.
+        Aligns models into a compact shared basis.
+        """
+        # Stack weights: (num_models, layer_dim)
+        stacked = torch.stack(model_weights)
+        # Perform SVD
+        U, S, V = torch.svd(stacked)
+        # Keep top k components
+        merged_weights = torch.mm(U[:, :rank], torch.mm(torch.diag(S[:rank]), V[:, :rank].t()))
+        return merged_weights.mean(dim=0)
 
-    def neg_merge(self, base_model, forget_models):
-        # Implementation for NegMerge (Machine Unlearning)
-        print(f"Performing NegMerge to remove influence of {forget_models}")
-        pass
+    @staticmethod
+    def neg_merge(base_weights: torch.Tensor, task_vectors: list[torch.Tensor]):
+        """
+        NegMerge implementation.
+        Uses sign-consensus to negate specific knowledge/influence.
+        """
+        # Aggregate task vectors based on sign consensus
+        stacked_tasks = torch.stack(task_vectors)
+        consensus_sign = torch.sign(stacked_tasks.sum(dim=0))
 
-    def franken_moe(self, experts, router_layers):
-        # Implementation for automated MoE construction
-        print(f"Constructing Franken-MoE with experts {experts}")
-        pass
+        # Only keep weights where all tasks agree on the direction
+        mask = (torch.sign(stacked_tasks) == consensus_sign).all(dim=0)
+        final_vector = stacked_tasks.mean(dim=0) * mask
+
+        # Negate from base
+        return base_weights - final_vector
+
+    @staticmethod
+    def franken_moe(expert_weights: list[dict], gate_weights: torch.Tensor):
+        """
+        Simple configuration generator for a Franken-MoE.
+        """
+        config = {
+            "type": "moe",
+            "experts": len(expert_weights),
+            "layers": [
+                {"expert_index": i, "weight_ref": "expert_weights[i]"}
+                for i in range(len(expert_weights))
+            ],
+            "router": "top-k"
+        }
+        return config

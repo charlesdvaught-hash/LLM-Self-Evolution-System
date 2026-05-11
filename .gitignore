@@ -1,0 +1,18 @@
+# Git
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# Database
+breeding_vat/data/*.db
+
+# Model weights (Large files)
+breeding_vat/data/merged_models/
+*.safetensors
+*.bin
+*.pth

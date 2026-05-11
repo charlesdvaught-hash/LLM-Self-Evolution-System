@@ -1,0 +1,11 @@
+streamlit
+transformers
+torch
+accelerate
+sqlite3
+pyyaml
+mergekit
+lm-eval
+pymoo
+unsloth
+peft

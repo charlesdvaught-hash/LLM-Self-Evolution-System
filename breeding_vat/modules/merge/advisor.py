@@ -3,7 +3,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import logging
 
 class MergeAdvisor:
-    def __init__(self, model_id="Qwen/Qwen3.5-0.8B-Instruct"):
+    def __init__(self, model_id="Qwen/Qwen2.5-0.5B-Instruct"):
         self.model_id = model_id
         self.tokenizer = None
         self.model = None
@@ -48,9 +48,3 @@ Keep it concise.
 
         response = self.tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
         return response
-
-if __name__ == "__main__":
-    # Test script (will try to download model if run)
-    # advisor = MergeAdvisor()
-    # print(advisor.generate_recipe("Improve logic", ["M1", "M2"], ["SLERP", "TIES"]))
-    pass

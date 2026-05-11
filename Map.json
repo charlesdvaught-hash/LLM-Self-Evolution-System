@@ -588,6 +588,36 @@
         "type": "documentation",
         "audience": ["users", "developers"],
         "topics": ["Available models", "Adding new models", "Model selection"]
+      },
+
+      "BEST_BANG_FOR_BUCK.md": {
+        "type": "documentation",
+        "audience": ["users", "developers"],
+        "topics": ["Optimization", "VRAM", "Speed", "Improvements"]
+      },
+
+      "ADVISOR_PIPELINE_EXPANSION.md": {
+        "type": "documentation",
+        "audience": ["ai", "developers"],
+        "topics": ["Internal pipeline", "Toggles", "Breeding Vat mechanics"]
+      },
+
+      "AI_CONCEPT_EXPLAINER.md": {
+        "type": "documentation",
+        "audience": ["ai", "users"],
+        "topics": ["LLM concepts", "Merging theory", "Quantization"]
+      },
+
+      "MERGE_RESOURCES.md": {
+        "type": "documentation",
+        "audience": ["users", "developers"],
+        "topics": ["Data repositories", "Low-VRAM techniques", "Prediction"]
+      },
+
+      "RESEARCH_RECIPES.md": {
+        "type": "documentation",
+        "audience": ["users", "developers"],
+        "topics": ["Templates", "Research presets", "Merge strategies"]
       }
     },
 

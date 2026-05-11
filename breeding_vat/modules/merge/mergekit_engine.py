@@ -188,7 +188,11 @@ class MergekitEngine:
         return config_path
     
     def run_merge(self, config_path: str, output_name: str, 
-                 chat_template: Optional[str] = None) -> Optional[str]:
+                 chat_template: Optional[str] = None,
+                 low_cpu_mem: bool = False,
+                 copy_tokenizer: bool = True,
+                 trust_remote_code: bool = False,
+                 lazy_unpickle: bool = False) -> Optional[str]:
         """
         Execute merge via Mergekit in container.
         
@@ -196,6 +200,10 @@ class MergekitEngine:
             config_path: Path to merge config (relative to project root)
             output_name: Output model directory name
             chat_template: Optional chat template for tokenizer
+            low_cpu_mem: Use --low-cpu-mem flag
+            copy_tokenizer: Use --copy-tokenizer flag
+            trust_remote_code: Use --trust-remote-code flag
+            lazy_unpickle: Use --lazy-unpickle flag
             
         Returns:
             Output path if successful, None otherwise
@@ -226,6 +234,15 @@ class MergekitEngine:
                 "--allow-patterns", "*"
             ]
             
+            if low_cpu_mem:
+                command.append("--low-cpu-mem")
+            if copy_tokenizer:
+                command.append("--copy-tokenizer")
+            if trust_remote_code:
+                command.append("--trust-remote-code")
+            if lazy_unpickle:
+                command.append("--lazy-unpickle")
+
             logger.info(f"Running merge: {' '.join(command)}")
             logger.info(f"Output: {container_output}")
             

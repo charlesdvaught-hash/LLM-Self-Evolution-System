@@ -91,6 +91,7 @@ scripts/                         # Utilities
 ✅ **20+ Merge Methods**: SLERP, TIES, DARE, Task Arithmetic, RegMean, Git Rebasin, Frankenmerge, and more  
 ✅ **Automated Evaluation**: Benchmark on HellaSwag, ARC, Winogrande, and custom tasks  
 ✅ **Local Model Support**: Upload your own finetuned models for evolution  
+✅ **Low-VRAM Optimization**: Toggles for Low CPU Memory and Lazy Unpickling to support large merges on consumer GPUs.
 ✅ **Full Lineage Tracking**: SQLite genealogy database tracks all ancestors and scores  
 ✅ **Resumable Experiments**: Pause and resume evolution runs across sessions  
 ✅ **SAE Introspection**: Analyze layer specialization and feature drift  

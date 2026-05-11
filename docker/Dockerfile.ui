@@ -2,7 +2,12 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+# Install Docker CLI so the container can talk to the host Docker daemon
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    && curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -10,5 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE 8501
+
+# Set the host directory env var to be used for volume mounting
+ENV HOST_PWD=""
 
 CMD ["streamlit", "run", "breeding_vat/ui/app.py", "--server.address=0.0.0.0"]

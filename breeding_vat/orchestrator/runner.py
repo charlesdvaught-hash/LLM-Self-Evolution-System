@@ -10,9 +10,15 @@ logger = logging.getLogger("Orchestrator")
 class TaskRunner:
     def __init__(self, db_path="breeding_vat/data/breeding.db"):
         self.db_path = db_path
+        # When running inside a container, we need to know the path on the HOST
+        # to mount volumes correctly in sibling containers (Docker-out-of-Docker).
+        self.host_pwd = os.environ.get("HOST_PWD", os.getcwd())
         self._init_db()
 
     def _init_db(self):
+        # Ensure data dir exists
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+
         with open("breeding_vat/data/schema.sql", "r") as f:
             schema = f.read()
         conn = sqlite3.connect(self.db_path)
@@ -23,7 +29,7 @@ class TaskRunner:
     def run_docker_task(self, image, command, volumes=None, gpus="all"):
         """
         Runs a command inside a docker container.
-        volumes: dict of {host_path: container_path}
+        volumes: dict of {relative_host_path: container_path}
         """
         docker_cmd = ["docker", "run", "--rm"]
 
@@ -31,9 +37,11 @@ class TaskRunner:
             docker_cmd.extend(["--gpus", gpus])
 
         if volumes:
-            for host, container in volumes.items():
-                abs_host = os.path.abspath(host)
-                docker_cmd.extend(["-v", f"{abs_host}:{container}"])
+            for rel_path, container_path in volumes.items():
+                # We use the HOST path provided by the UI container environment
+                # rel_path should be relative to the project root
+                abs_host_path = os.path.join(self.host_pwd, rel_path)
+                docker_cmd.extend(["-v", f"{abs_host_path}:{container_path}"])
 
         docker_cmd.append(image)
         docker_cmd.extend(command)
@@ -57,8 +65,3 @@ class TaskRunner:
         conn.commit()
         conn.close()
         return model_id
-
-if __name__ == "__main__":
-    # Test initialization
-    runner = TaskRunner()
-    print("Orchestrator initialized and DB schema applied.")

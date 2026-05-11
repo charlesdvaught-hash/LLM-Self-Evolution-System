@@ -1,0 +1,9 @@
+base_model: Qwen/Qwen2.5-0.5B
+dtype: float16
+merge_method: ties
+models:
+- model: Qwen/Qwen2.5-0.5B
+  parameters: &id001
+    weight: 0.5
+- model: Qwen/Qwen2.5-0.5B
+  parameters: *id001

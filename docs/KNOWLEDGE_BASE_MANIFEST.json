@@ -1,0 +1,137 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "description": "Knowledge base manifest for The Breeding Vat advisor system",
+    "created": "2025-01-15",
+    "purpose": "Enables 0.8B advisor model to locate and reference documentation"
+  },
+  
+  "guides": {
+    "local_models": {
+      "path": "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "description": "How to upload and use local models in experiments",
+      "keywords": ["upload", "local model", "transfer", "model zoo", "custom model"],
+      "topics": ["local models", "getting started", "file upload"]
+    },
+    "local_models_detailed": {
+      "path": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "description": "Complete integration guide for local model feature with architecture",
+      "keywords": ["local model", "integration", "architecture", "model transfer", "preservation"],
+      "topics": ["local models", "advanced", "implementation"]
+    },
+    "merge_methods": {
+      "path": "docs/guides/FUSIONBENCH_QUICKSTART.md",
+      "description": "Quick overview of all 20+ merge methods available",
+      "keywords": ["merge", "FusionBench", "SLERP", "TIES", "DARE", "methods"],
+      "topics": ["merge methods", "quick reference", "FusionBench"]
+    },
+    "moe_advanced": {
+      "path": "docs/guides/MOE_GUIDE.md",
+      "description": "Advanced guide for building Mixture-of-Experts models",
+      "keywords": ["MoE", "mixture of experts", "advanced", "layer-wise"],
+      "topics": ["advanced", "MoE", "specialized architectures"]
+    }
+  },
+
+  "reference": {
+    "architecture": {
+      "path": "docs/reference/Architecture.md",
+      "description": "Complete system architecture, components, and design decisions",
+      "keywords": ["architecture", "system design", "components", "data flow", "pipeline"],
+      "topics": ["architecture", "system design", "technical foundation"]
+    },
+    "merge_inventory": {
+      "path": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "description": "Complete inventory of all 20+ merge methods with parameters",
+      "keywords": ["merge methods", "inventory", "parameters", "FusionBench", "MergeKit"],
+      "topics": ["merge methods", "reference", "parameters", "all methods"]
+    },
+    "models": {
+      "path": "docs/reference/SPECIALIZED_MODELS.md",
+      "description": "Available base models for merging (Qwen, Mistral, Llama, etc.)",
+      "keywords": ["models", "base models", "available", "reasoning", "code", "math"],
+      "topics": ["models", "base models", "specialized"]
+    },
+    "model_zoo": {
+      "path": "docs/reference/MODEL_ZOO.md",
+      "description": "Model storage structure, preservation strategy, and management",
+      "keywords": ["model zoo", "storage", "preservation", "original models", "structure"],
+      "topics": ["model storage", "data organization", "preservation"]
+    },
+    "sae": {
+      "path": "docs/reference/SAE_GUIDE.md",
+      "description": "Sparse Autoencoder layer introspection and analysis",
+      "keywords": ["SAE", "sparse autoencoder", "introspection", "layers", "features"],
+      "topics": ["SAE", "layer analysis", "introspection"]
+    },
+    "sae_optimization": {
+      "path": "docs/reference/SAE_MEMORY_OPTIMIZATION.md",
+      "description": "Memory-efficient SAE techniques for large models",
+      "keywords": ["SAE", "memory optimization", "VRAM", "efficiency", "streaming"],
+      "topics": ["SAE", "optimization", "memory management"]
+    }
+  },
+
+  "quick_answers": {
+    "how_to_upload_model": {
+      "guide": "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "reference": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "keywords": ["upload", "local", "model", "how to"]
+    },
+    "merge_methods_overview": {
+      "guide": "docs/guides/FUSIONBENCH_QUICKSTART.md",
+      "reference": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "keywords": ["merge", "methods", "options", "available"]
+    },
+    "system_architecture": {
+      "reference": "docs/reference/Architecture.md",
+      "keywords": ["architecture", "design", "components", "how it works"]
+    },
+    "available_models": {
+      "reference": "docs/reference/SPECIALIZED_MODELS.md",
+      "guide": "docs/reference/MODEL_ZOO.md",
+      "keywords": ["models", "available", "base models", "options"]
+    },
+    "sae_analysis": {
+      "guide": "docs/reference/SAE_GUIDE.md",
+      "reference": "docs/reference/SAE_MEMORY_OPTIMIZATION.md",
+      "keywords": ["SAE", "sparse autoencoder", "layer analysis"]
+    },
+    "advanced_moe": {
+      "guide": "docs/guides/MOE_GUIDE.md",
+      "keywords": ["MoE", "mixture of experts", "advanced"]
+    }
+  },
+
+  "search_index": {
+    "local": [
+      "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "docs/reference/MODEL_ZOO.md"
+    ],
+    "merge": [
+      "docs/guides/FUSIONBENCH_QUICKSTART.md",
+      "docs/reference/MERGING_METHODS_INVENTORY.md"
+    ],
+    "models": [
+      "docs/reference/SPECIALIZED_MODELS.md",
+      "docs/reference/MODEL_ZOO.md"
+    ],
+    "advanced": [
+      "docs/guides/MOE_GUIDE.md",
+      "docs/reference/SAE_GUIDE.md",
+      "docs/reference/SAE_MEMORY_OPTIMIZATION.md"
+    ],
+    "architecture": [
+      "docs/reference/Architecture.md"
+    ]
+  },
+
+  "advisor_prompts": {
+    "recipe_generation": "See 'merge_methods_overview' and 'available_models'",
+    "local_model_usage": "See 'how_to_upload_model'",
+    "system_understanding": "See 'system_architecture'",
+    "advanced_techniques": "See 'advanced_moe' and 'sae_analysis'",
+    "merge_recommendations": "See 'merge_methods_overview' then 'merge_inventory'"
+  }
+}

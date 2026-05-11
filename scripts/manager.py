@@ -5,6 +5,13 @@ import os
 import webbrowser
 import time
 
+REQUIRED_IMAGES = {
+    "vat-ui": "docker/Dockerfile.ui",
+    "vat-merge": "docker/Dockerfile.merge",
+    "vat-eval": "docker/Dockerfile.eval",
+    "vat-sae": "docker/Dockerfile.sae"
+}
+
 def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
@@ -31,22 +38,61 @@ def stop_container(container_id):
 def find_available_port(start_port):
     port = start_port
     while is_port_in_use(port):
-        print(f"[!] Port {port} is in use.")
         cid, image = get_container_using_port(port)
-        if image == "vat-ui":
-            print(f"[i] Found existing vat-ui container ({cid}). Stopping it...")
+        if image and "vat-ui" in image:
+            print(f"[i] Port {port} is used by an existing vat-ui container ({cid}). Restarting...")
             stop_container(cid)
             if not is_port_in_use(port):
                 return port
         else:
+            print(f"[!] Port {port} is in use by another process. Checking next port...")
             port += 1
     return port
 
+def image_exists(image_name):
+    result = subprocess.run(["docker", "images", "-q", image_name], capture_output=True, text=True)
+    return bool(result.stdout.strip())
+
+def ensure_images():
+    print("[🧬] Verifying Lab Environment...")
+    missing = []
+    for name in REQUIRED_IMAGES:
+        if not image_exists(name):
+            missing.append(name)
+
+    if not missing:
+        print("[✓] All systems operational. Containers are ready.")
+        return True
+
+    print(f"[!] Missing {len(missing)} container(s). Initializing repair/setup...")
+    for name in missing:
+        dockerfile = REQUIRED_IMAGES[name]
+        print(f"[i] Building {name} from {dockerfile}...")
+        try:
+            subprocess.run(["docker", "build", "-t", name, "-f", dockerfile, "."], check=True)
+            print(f"[✓] {name} built successfully.")
+        except subprocess.CalledProcessError:
+            print(f"[X] Failed to build {name}. Please check Docker logs.")
+            return False
+
+    print("[✓] Environment repair complete.")
+    return True
+
 def run_ui():
+    if not ensure_images():
+        print("[X] Environment setup failed. Cannot launch UI.")
+        sys.exit(1)
+
     target_port = find_available_port(8501)
     host_pwd = os.getcwd()
 
     print(f"[🧬] Launching Control Room on port {target_port}...")
+
+    # We use a unique name for the container instance
+    container_name = "vat-ui-live"
+    # Ensure no name collision
+    subprocess.run(["docker", "stop", container_name], capture_output=True)
+    subprocess.run(["docker", "rm", container_name], capture_output=True)
 
     docker_cmd = [
         "docker", "run", "--rm", "-d",
@@ -55,7 +101,7 @@ def run_ui():
         "-v", f"{host_pwd}:/app",
         "-e", f"HOST_PWD={host_pwd}",
         "--gpus", "all",
-        "--name", "vat-ui-live",
+        "--name", container_name,
         "vat-ui"
     ]
 
@@ -63,34 +109,18 @@ def run_ui():
         subprocess.run(docker_cmd, check=True)
         url = f"http://localhost:{target_port}"
         print(f"[✓] Control Room is live at {url}")
+
+        # Give Streamlit a moment to start before opening browser
+        time.sleep(2)
         webbrowser.open(url)
 
         print("\nPress Ctrl+C to stop the lab.")
-        # Follow logs so the process stays alive and user can see output
-        subprocess.run(["docker", "logs", "-f", "vat-ui-live"])
+        subprocess.run(["docker", "logs", "-f", container_name])
     except KeyboardInterrupt:
         print("\n[i] Stopping the Control Room...")
-        subprocess.run(["docker", "stop", "vat-ui-live"], capture_output=True)
+        subprocess.run(["docker", "stop", container_name], capture_output=True)
     except subprocess.CalledProcessError as e:
         print(f"[!] Error launching container: {e}")
-        sys.exit(1)
-
-def verify_setup():
-    images = ["vat-ui", "vat-merge", "vat-eval", "vat-sae"]
-    missing = []
-    print("\n--- Setup Validation ---")
-    for img in images:
-        result = subprocess.run(["docker", "images", "-q", img], capture_output=True, text=True)
-        if result.stdout.strip():
-            print(f"[✓] Image '{img}' is valid.")
-        else:
-            print(f"[X] Image '{img}' is MISSING.")
-            missing.append(img)
-
-    if not missing:
-        print("\n[✓] All systems go! Use run.bat to start the lab.")
-    else:
-        print(f"\n[!] Setup incomplete. Missing: {', '.join(missing)}")
         sys.exit(1)
 
 if __name__ == "__main__":
@@ -98,6 +128,6 @@ if __name__ == "__main__":
         if sys.argv[1] == "run":
             run_ui()
         elif sys.argv[1] == "verify":
-            verify_setup()
+            ensure_images()
     else:
         print("Usage: manager.py [run|verify]")

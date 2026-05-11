@@ -1,5 +1,5 @@
 @echo off
-echo [🧬 The Breeding Vat] Launching Lab in Docker...
+echo [🧬 The Breeding Vat] Initializing Lab...
 
 :: 1. Check if Docker is running
 docker info >nul 2>&1
@@ -10,7 +10,11 @@ if %errorlevel% neq 0 (
 )
 
 :: 2. Run the UI Container via Manager
-:: The manager script handles port collisions and container lifecycle.
+:: The manager script handles image verification/repair, port collisions, and container lifecycle.
 python scripts/manager.py run
 
-pause
+if %errorlevel% neq 0 (
+    echo.
+    echo [!] Lab failed to start.
+    pause
+)

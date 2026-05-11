@@ -30,10 +30,17 @@ def get_container_using_port(port):
         pass
     return None, None
 
-def stop_container(container_id):
+def stop_container(container_id, port):
     print(f"[i] Stopping container {container_id}...")
     subprocess.run(["docker", "stop", container_id], check=True, capture_output=True)
-    subprocess.run(["docker", "rm", container_id], check=True, capture_output=True)
+
+    # "The Patient Waiter" - Wait for the port to be released
+    # Since we use --rm, Docker will remove the container automatically.
+    print(f"[i] Waiting for port {port} to be released...")
+    attempts = 0
+    while is_port_in_use(port) and attempts < 10:
+        time.sleep(1)
+        attempts += 1
 
 def find_available_port(start_port):
     port = start_port
@@ -41,7 +48,8 @@ def find_available_port(start_port):
         cid, image = get_container_using_port(port)
         if image and "vat-ui" in image:
             print(f"[i] Port {port} is used by an existing vat-ui container ({cid}). Restarting...")
-            stop_container(cid)
+            stop_container(cid, port)
+            # Re-check the port after stopping
             if not is_port_in_use(port):
                 return port
         else:
@@ -90,9 +98,8 @@ def run_ui():
 
     # We use a unique name for the container instance
     container_name = "vat-ui-live"
-    # Ensure no name collision
+    # Ensure no name collision - silent stop if exists
     subprocess.run(["docker", "stop", container_name], capture_output=True)
-    subprocess.run(["docker", "rm", container_name], capture_output=True)
 
     docker_cmd = [
         "docker", "run", "--rm", "-d",

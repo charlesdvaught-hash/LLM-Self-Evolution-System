@@ -20,7 +20,9 @@ docker build -t vat-merge -f docker/Dockerfile.merge .
 docker build -t vat-eval -f docker/Dockerfile.eval .
 docker build -t vat-sae -f docker/Dockerfile.sae .
 
+:: 3. Verify Setup
+python scripts/manager.py verify
+
 echo.
-echo [✓] Setup Complete!
-echo All dependencies are containerized. Use run.bat to start.
+echo [✓] Setup Process Complete!
 pause

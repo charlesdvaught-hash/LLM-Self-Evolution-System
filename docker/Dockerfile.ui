@@ -2,11 +2,21 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install Docker CLI so the container can talk to the host Docker daemon
+# Install Docker CLI and other tools
+# We manually install the CLI to avoid the slow, interactive get.docker.com script
 RUN apt-get update && apt-get install -y \
     git \
     curl \
-    && curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh \
+    ca-certificates \
+    gnupg \
+    && install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+    && chmod a+r /etc/apt/keyrings/docker.gpg \
+    && echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      tee /etc/apt/sources.list.d/docker.list > /dev/null \
+    && apt-get update && apt-get install -y docker-ce-cli \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

@@ -16,6 +16,7 @@ import threading
 import time
 import math
 
+from breeding_vat.utils.hardware import get_hardware_stats, predict_resources, get_risk_assessment
 from breeding_vat.modules.merge.advisor import MergeAdvisor
 from breeding_vat.modules.merge.evolution import EvolutionEngine
 from breeding_vat.modules.merge.merger import AdvancedMerger
@@ -305,17 +306,35 @@ with st.sidebar:
         
         st.markdown("---")
     
-    st.markdown("### ⚙️ Merge Methods")
+    st.markdown("### ⚙️ Evolution Settings")
+
+    duration_mode = st.select_slider(
+        "Duration",
+        options=["Speedy", "Balanced", "Thorough"],
+        value="Balanced",
+        help="Speedy: Simple/fast merges. Thorough: Complex merges and deep analysis."
+    )
     
     # Categorize methods
     mergekit_methods = ["slerp", "ties", "dare", "moe", "rmm", "negmerge"]
     fusionbench_methods = [m for m in MERGING_METHODS.keys() if m not in mergekit_methods]
     
+    # Filter methods based on duration
+    if duration_mode == "Speedy":
+        mk_options = ["SLERP", "LINEAR", "TASK_ARITHMETIC"]
+        fb_options = ["LINEAR", "VOTING"]
+        # Intersect with available
+        mk_available = [m.upper() for m in mergekit_methods if m.upper() in mk_options or m == "slerp"]
+        fb_available = [m.upper() for m in fusionbench_methods if m.upper() in fb_options]
+    else:
+        mk_available = [m.upper() for m in mergekit_methods]
+        fb_available = [m.upper() for m in fusionbench_methods]
+
     st.caption("🔧 MergeKit (Weight Interpolation)")
     mergekit_selected = st.multiselect(
         "MergeKit methods",
-        [m.upper() for m in mergekit_methods],
-        default=["SLERP", "TIES"],
+        mk_available,
+        default=["SLERP"] if duration_mode == "Speedy" else ["SLERP", "TIES"],
         help="Classical interpolation & weighted merging",
         key="mergekit_select",
         label_visibility="collapsed"
@@ -324,8 +343,8 @@ with st.sidebar:
     st.caption("🧠 FusionBench (Advanced Techniques)")
     fusionbench_selected = st.multiselect(
         "FusionBench methods",
-        [m.upper() for m in fusionbench_methods[:8]],  # Top 8 FusionBench methods
-        default=["TASK_ARITHMETIC", "REGMEAN"],
+        fb_available[:8],
+        default=["VOTING"] if duration_mode == "Speedy" else ["TASK_ARITHMETIC", "REGMEAN"],
         help="Regression, voting, layer-wise, and advanced merging",
         key="fb_select",
         label_visibility="collapsed"
@@ -333,8 +352,14 @@ with st.sidebar:
     
     merge_methods = [m.lower() for m in (mergekit_selected + fusionbench_selected)]
     
-    num_cycles = st.number_input("Cycles", 1, 100, 3, help="Evolution iterations")
+    num_cycles = st.number_input("Evolution Rounds", 1, 100, 3, help="Evolution iterations")
+    models_per_evolution = st.number_input("Models per Evolution", 1, 10, 2, help="Branching factor: children per parent")
+
     culling_rate = st.slider("Culling %", 0, 100, 50, help="% of population to eliminate")
+    min_passing_score = st.slider("Min Passing Score", 0.0, 1.0, 0.0, 0.01, help="Models below this are culled immediately")
+    second_chances = st.checkbox("Second Chances", value=False, help="Re-evaluate borderline models before culling")
+
+    include_sae = st.checkbox("Include SAE Analysis", value=duration_mode == "Thorough", help="Run SAE analysis on offspring")
     
     st.markdown("---")
     st.markdown("### ⚙️ Method Parameters")
@@ -361,6 +386,28 @@ with st.sidebar:
     with st.expander("Frankenmerge", expanded=False):
         fm_rank = st.slider("Rank", 1, 32, 8, help="Layer-wise decomposition rank")
     
+    st.markdown("---")
+    st.markdown("### 🛡️ Hardware Guard")
+
+    hw_stats = get_hardware_stats()
+    # Assume 2.5B parameter models (avg 5GB) for estimation if no models selected
+    estimated_size = 5.0
+
+    if merge_methods:
+        prediction = predict_resources(merge_methods[0], [estimated_size] * 2)
+        risk_assessment = get_risk_assessment(prediction, hw_stats)
+
+        risk_color = "red" if risk_assessment["status"] == "danger" else "orange" if risk_assessment["status"] == "warning" else "green"
+        st.markdown(f"Risk Level: <span style='color:{risk_color}; font-weight:bold;'>{risk_assessment['max_risk']:.1f}%</span>", unsafe_allow_html=True)
+
+        if risk_assessment["max_risk"] > 75:
+            st.warning("⚠️ High failure risk! Lower 'Models per Evolution' or use 'Speedy' mode.")
+
+        with st.expander("Resource Estimates"):
+            st.write(f"VRAM: {prediction['vram']:.1f} / {hw_stats['vram_total']:.1f} GB")
+            st.write(f"RAM: {prediction['ram']:.1f} / {hw_stats['ram_available']:.1f} GB")
+            st.write(f"Disk: {prediction['disk']:.1f} / {hw_stats['disk_free']:.1f} GB")
+
     st.markdown("---")
     st.markdown("### 🤖 Advisor")
     
@@ -511,7 +558,7 @@ if st.session_state.current_experiment:
                         advisor = MergeAdvisor(model_id=advisor_model)
                         try:
                             exp = st.session_state.current_experiment
-                            recipe = advisor.generate_recipe(exp['goal'], base_models, merge_methods)
+                            recipe = advisor.generate_recipe(exp['goal'], base_models, merge_methods, hardware_constraints=hw_stats)
                             
                             st.session_state.exp_manager.save_config(
                                 exp,
@@ -587,7 +634,12 @@ if st.session_state.current_experiment:
                         num_cycles=num_cycles,
                         culling_rate=culling_rate,
                         allowed_methods=merge_methods,
-                        resume_from_cycle=exp['cycles_completed']
+                        resume_from_cycle=exp['cycles_completed'],
+                        models_per_evolution=models_per_evolution,
+                        min_passing_score=min_passing_score,
+                        second_chances=second_chances,
+                        include_sae=include_sae,
+                        duration_mode=duration_mode
                     )
                     
                     # Update stats

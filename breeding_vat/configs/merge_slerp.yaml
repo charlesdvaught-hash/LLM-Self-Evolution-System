@@ -1,0 +1,9 @@
+base_model: M2
+dtype: float16
+merge_method: slerp
+models:
+- model: M2
+  parameters: &id001
+    weight: 0.5
+- model: M2
+  parameters: *id001

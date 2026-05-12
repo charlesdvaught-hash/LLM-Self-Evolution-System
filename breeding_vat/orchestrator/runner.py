@@ -41,7 +41,10 @@ class TaskRunner:
                 # We use the HOST path provided by the UI container environment
                 # rel_path should be relative to the project root
                 abs_host_path = os.path.join(self.host_pwd, rel_path)
-                docker_cmd.extend(["-v", f"{abs_host_path}:{container_path}"])
+                # Convert Windows backslashes to forward slashes for Docker
+                abs_host_path = abs_host_path.replace("\\", "/")
+                volume_mount = f"{abs_host_path}:{container_path}"
+                docker_cmd.extend(["-v", volume_mount])
 
         docker_cmd.append(image)
         docker_cmd.extend(command)

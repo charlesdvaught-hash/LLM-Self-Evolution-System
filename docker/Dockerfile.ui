@@ -2,34 +2,35 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install Docker CLI and other tools
-# We manually install the CLI to avoid the slow, interactive get.docker.com script
-RUN apt-get update && apt-get install -y \
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     ca-certificates \
-    gnupg \
-    && install -m 0755 -d /etc/apt/keyrings \
-    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
-    && chmod a+r /etc/apt/keyrings/docker.gpg \
-    && echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-      tee /etc/apt/sources.list.d/docker.list > /dev/null \
-    && apt-get update && apt-get install -y docker-ce-cli \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Docker CLI
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - && \
+    apt-get update && apt-get install -y --no-install-recommends docker-ce-cli && \
+    rm -rf /var/lib/apt/lists/* || true
+
+# Upgrade pip
+RUN pip install --upgrade pip setuptools wheel
+
+# Install PyTorch (CPU to save space and memory on WSL)
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Copy and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-COPY . .
+# Copy entire app
+COPY . /app
 
-EXPOSE 8501
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1
 
-# Ensure the breeding_vat package is discoverable
-ENV PYTHONPATH="/app"
-# Set the host directory env var to be used for volume mounting
-ENV HOST_PWD=""
-ENV PYTHONPATH=/app
+EXPOSE 8501 8888
 
-CMD ["streamlit", "run", "breeding_vat/ui/app.py", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "/app/breeding_vat/ui/app.py", "--server.address=0.0.0.0"]

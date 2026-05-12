@@ -22,7 +22,24 @@ class TaskRunner:
         with open("breeding_vat/data/schema.sql", "r") as f:
             schema = f.read()
         conn = sqlite3.connect(self.db_path)
-        conn.executescript(schema)
+
+        # Split schema by semicolon to handle statements individually
+        # to support safe idempotency and manual migrations
+        for statement in schema.split(';'):
+            if statement.strip():
+                try:
+                    conn.execute(statement)
+                except sqlite3.OperationalError as e:
+                    if "already exists" in str(e) or "duplicate column name" in str(e):
+                        continue
+                    logger.warning(f"SQL warning: {e}")
+
+        # Manual migration for 'method' column if not in schema.sql yet
+        try:
+            conn.execute("ALTER TABLE models ADD COLUMN method TEXT")
+        except sqlite3.OperationalError:
+            pass # Column already exists
+
         conn.commit()
         conn.close()
 
@@ -57,7 +74,7 @@ class TaskRunner:
             logger.error(f"Task failed: {e.stderr}")
             raise
 
-    def log_model(self, name, base_models, recipe_path, experiment_id=None, parent_id=None, benchmark_results=None, cycle_number=None, status='completed'):
+    def log_model(self, name, base_models, recipe_path, experiment_id=None, parent_id=None, benchmark_results=None, cycle_number=None, status='completed', method=None):
         """Log a model to the database with full metadata."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -66,11 +83,19 @@ class TaskRunner:
 
         cursor.execute(
             """INSERT INTO models
-               (name, experiment_id, base_models, recipe_path, lineage_parent_id, benchmark_results, cycle_number, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (name, experiment_id, json.dumps(base_models), recipe_path, parent_id, bench_str, cycle_number, status)
+               (name, experiment_id, base_models, recipe_path, lineage_parent_id, benchmark_results, cycle_number, status, method)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (name, experiment_id, json.dumps(base_models), recipe_path, parent_id, bench_str, cycle_number, status, method)
         )
         model_id = cursor.lastrowid
         conn.commit()
         conn.close()
         return model_id
+
+    def update_model_status(self, model_id, status):
+        """Update the status of an existing model."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE models SET status = ? WHERE id = ?", (status, model_id))
+        conn.commit()
+        conn.close()

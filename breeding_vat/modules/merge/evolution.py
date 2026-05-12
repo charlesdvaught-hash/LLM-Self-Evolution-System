@@ -71,7 +71,8 @@ class EvolutionEngine:
                                 parent_id=parent_id,
                                 benchmark_results=eval_data,
                                 cycle_number=cycle + 1,
-                                status=status
+                                status=status,
+                                method=method
                             )
 
                             child_entry = {
@@ -93,7 +94,8 @@ class EvolutionEngine:
                                 experiment_id=experiment_id,
                                 parent_id=parent_id,
                                 cycle_number=cycle + 1,
-                                status='failed_merge'
+                                status='failed_merge',
+                                method=method
                             )
                             logger.warning(f"  Merge failed, skipping evaluation")
                     
@@ -123,8 +125,8 @@ class EvolutionEngine:
             # Mark culled models in DB
             culled = passing[num_to_keep:]
             for c in culled:
-                # Update status to culled (simplified: we just know they didn't make it to population)
-                pass
+                if c.get('id'):
+                    self.runner.update_model_status(c['id'], 'culled')
 
             population = passing[:num_to_keep]
 
@@ -230,13 +232,12 @@ class EvolutionEngine:
                         "raw_results": eval_results
                     }
             
-            # Fallback/Mock for demonstration
-            logger.warning(f"No evaluation results found for {model_name}, generating synthetic data")
-            mock_score = random.uniform(0.5, 0.7)
+            # Fallback for demonstration - removed random synthetic data to maintain evolution integrity
+            logger.warning(f"No evaluation results found for {model_name}.")
             return {
-                "avg_score": mock_score,
-                "tasks": {"hellaswag": mock_score + 0.05, "arc_challenge": mock_score - 0.05},
-                "status": "mocked"
+                "avg_score": 0.0,
+                "tasks": {},
+                "status": "evaluation_missing"
             }
             
         except Exception as e:

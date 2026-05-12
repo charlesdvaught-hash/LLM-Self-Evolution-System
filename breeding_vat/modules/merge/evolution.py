@@ -6,7 +6,6 @@ import os
 import json
 import sqlite3
 import logging
-from typing import Dict, List, Optional
 from breeding_vat.orchestrator.runner import TaskRunner
 from breeding_vat.modules.merge.mergekit_engine import MergekitEngine
 from breeding_vat.modules.merge.merger import AdvancedMerger
@@ -14,9 +13,8 @@ from breeding_vat.modules.merge.merger import AdvancedMerger
 logger = logging.getLogger("EvolutionEngine")
 
 class EvolutionEngine:
-    def __init__(self, runner: TaskRunner, merge_settings: Optional[Dict] = None):
+    def __init__(self, runner: TaskRunner):
         self.runner = runner
-        self.merge_settings = merge_settings or {}
         self.engine = MergekitEngine(runner)
         self.advanced_merger = AdvancedMerger(runner)
 
@@ -45,10 +43,7 @@ class EvolutionEngine:
                     logger.info(f"  Parents: {parent_model} + {sibling_model}")
                     
                     try:
-                        result = self._apply_merge_method(
-                            method, parent_model, sibling_model, child_name,
-                            **self.merge_settings
-                        )
+                        result = self._apply_merge_method(method, parent_model, sibling_model, child_name)
                         
                         if result:
                             # Evaluate in Docker
@@ -83,7 +78,7 @@ class EvolutionEngine:
         logger.info(f"Evolution complete. Best model: {best_model['name']} (score: {best_model['score']:.4f})")
         return best_model
     
-    def _apply_merge_method(self, method: str, model_a: str, model_b: str, output_name: str, **kwargs) -> bool:
+    def _apply_merge_method(self, method: str, model_a: str, model_b: str, output_name: str) -> bool:
         """Apply a merge method via Mergekit."""
         try:
             if method in ["slerp", "ties", "dare", "task_arithmetic"]:
@@ -93,7 +88,7 @@ class EvolutionEngine:
                     [model_b],
                     {"weights": [0.5]}
                 )
-                result = self.engine.run_merge(config_path, output_name, **kwargs)
+                result = self.engine.run_merge(config_path, output_name)
                 return result is not None
             
             elif method == "moe":
@@ -103,7 +98,7 @@ class EvolutionEngine:
                     [model_b],
                     {"num_experts": 2}
                 )
-                result = self.engine.run_merge(config_path, output_name, **kwargs)
+                result = self.engine.run_merge(config_path, output_name)
                 return result is not None
             
             elif method == "dare_ties":
@@ -113,7 +108,7 @@ class EvolutionEngine:
                     [model_b],
                     {"drop_rate": 0.1, "weights": [0.5]}
                 )
-                result = self.engine.run_merge(config_path, output_name, **kwargs)
+                result = self.engine.run_merge(config_path, output_name)
                 return result is not None
             
             else:
@@ -124,7 +119,7 @@ class EvolutionEngine:
                     [model_b],
                     {"weights": [0.5]}
                 )
-                result = self.engine.run_merge(config_path, output_name, **kwargs)
+                result = self.engine.run_merge(config_path, output_name)
                 return result is not None
         
         except Exception as e:

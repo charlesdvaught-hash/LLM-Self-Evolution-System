@@ -24,13 +24,6 @@ Welcome to **The Breeding Vat** documentation. All guides and technical referenc
 - **Available models**: [reference/SPECIALIZED_MODELS.md](reference/SPECIALIZED_MODELS.md)
 - **Model storage**: [reference/MODEL_ZOO.md](reference/MODEL_ZOO.md)
 
-### I want to improve my pipeline and VRAM usage
-- **Best bang for buck**: [reference/BEST_BANG_FOR_BUCK.md](reference/BEST_BANG_FOR_BUCK.md)
-- **Merge Resources & Low-VRAM**: [reference/MERGE_RESOURCES.md](reference/MERGE_RESOURCES.md)
-
-### I want to use research-backed recipes
-- **Research Recipes**: [reference/RESEARCH_RECIPES.md](reference/RESEARCH_RECIPES.md)
-
 ### I want to analyze models with SAE
 - **Quick intro**: [reference/SAE_GUIDE.md](reference/SAE_GUIDE.md)
 - **Memory optimization**: [reference/SAE_MEMORY_OPTIMIZATION.md](reference/SAE_MEMORY_OPTIMIZATION.md)
@@ -62,11 +55,6 @@ Welcome to **The Breeding Vat** documentation. All guides and technical referenc
 | [reference/MODEL_ZOO.md](reference/MODEL_ZOO.md) | Model storage structure and preservation strategy | Reference |
 | [reference/SAE_GUIDE.md](reference/SAE_GUIDE.md) | Sparse Autoencoder layer introspection | Technical |
 | [reference/SAE_MEMORY_OPTIMIZATION.md](reference/SAE_MEMORY_OPTIMIZATION.md) | Memory-efficient SAE techniques | Technical |
-| [reference/BEST_BANG_FOR_BUCK.md](reference/BEST_BANG_FOR_BUCK.md) | 20+ pipeline improvements | Quick |
-| [reference/ADVISOR_PIPELINE_EXPANSION.md](reference/ADVISOR_PIPELINE_EXPANSION.md) | Internal pipeline details for AI | Technical |
-| [reference/AI_CONCEPT_EXPLAINER.md](reference/AI_CONCEPT_EXPLAINER.md) | General AI concept reference | Educational |
-| [reference/MERGE_RESOURCES.md](reference/MERGE_RESOURCES.md) | Data repos and low-VRAM tips | Reference |
-| [reference/RESEARCH_RECIPES.md](reference/RESEARCH_RECIPES.md) | Research-backed merge templates | Reference |
 
 ---
 

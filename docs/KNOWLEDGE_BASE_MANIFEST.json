@@ -69,36 +69,6 @@
       "description": "Memory-efficient SAE techniques for large models",
       "keywords": ["SAE", "memory optimization", "VRAM", "efficiency", "streaming"],
       "topics": ["SAE", "optimization", "memory management"]
-    },
-    "best_bang_for_buck": {
-      "path": "docs/reference/BEST_BANG_FOR_BUCK.md",
-      "description": "20+ pipeline improvements for VRAM, speed, and capability",
-      "keywords": ["optimization", "VRAM", "speed", "improvements", "bang for buck"],
-      "topics": ["optimization", "efficiency"]
-    },
-    "advisor_expansion": {
-      "path": "docs/reference/ADVISOR_PIPELINE_EXPANSION.md",
-      "description": "Internal pipeline and toggle details for the advisor model",
-      "keywords": ["pipeline", "internal", "toggles", "mechanics"],
-      "topics": ["architecture", "advisor"]
-    },
-    "ai_concepts": {
-      "path": "docs/reference/AI_CONCEPT_EXPLAINER.md",
-      "description": "Dense reference for general LLM and merging concepts",
-      "keywords": ["concepts", "theory", "quantization", "architecture"],
-      "topics": ["education", "advisor"]
-    },
-    "merge_resources": {
-      "path": "docs/reference/MERGE_RESOURCES.md",
-      "description": "Data repositories and techniques for large merges on low VRAM",
-      "keywords": ["resources", "repositories", "low VRAM", "sharding"],
-      "topics": ["merge", "resources"]
-    },
-    "research_recipes": {
-      "path": "docs/reference/RESEARCH_RECIPES.md",
-      "description": "Merge presets and strategy templates from research",
-      "keywords": ["recipes", "templates", "presets", "research"],
-      "topics": ["merge", "templates"]
     }
   },
 

@@ -1,0 +1,46 @@
+services:
+  breeding-vat-ui:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ui
+    container_name: breeding-vat-ui
+    image: breeding-vat-ui:latest
+    stdin_open: true
+    tty: true
+    environment:
+      PYTHONUNBUFFERED: 1
+      PYTHONPATH: /app
+      DOCKER_HOST: unix:///var/run/docker.sock
+    volumes:
+      # Mount only data directory for persistence (not code)
+      - ./breeding_vat/data:/app/breeding_vat/data:rw
+      # Docker socket for spawning containers
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    ports:
+      - "8501:8501"
+    command: streamlit run /app/breeding_vat/ui/app.py --server.address=0.0.0.0
+    networks:
+      - breeding-vat-net
+
+  jupyter:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ui
+    container_name: breeding-vat-jupyter
+    image: breeding-vat-ui:latest
+    environment:
+      PYTHONUNBUFFERED: 1
+      PYTHONPATH: /app
+      JUPYTER_ENABLE_LAB: 'yes'
+    volumes:
+      - ./breeding_vat/data:/app/breeding_vat/data:rw
+    ports:
+      - "8888:8888"
+    command: jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+    networks:
+      - breeding-vat-net
+    profiles: [ "dev" ]
+
+networks:
+  breeding-vat-net:
+    driver: bridge

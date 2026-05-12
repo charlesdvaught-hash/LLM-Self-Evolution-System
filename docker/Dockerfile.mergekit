@@ -1,0 +1,30 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    wget \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Fusioncore and dependencies
+RUN pip install --no-cache-dir \
+    fusioncore>=0.1.0 \
+    torch>=2.0.0 \
+    transformers>=4.36.0 \
+    accelerate>=0.24.0 \
+    peft>=0.7.0 \
+    safetensors>=0.4.0 \
+    pyyaml>=6.0 \
+    click>=8.1.0 \
+    tqdm>=4.66.0
+
+# Create directories for models and configs
+RUN mkdir -p /app/models /app/configs /app/output /app/data
+
+# Entrypoint: run fusioncore with provided config
+ENTRYPOINT ["fusioncore"]
+CMD ["--help"]

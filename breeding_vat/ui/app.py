@@ -216,19 +216,6 @@ with st.sidebar:
     st.markdown("---")
     st.header("🎛️ Mission Control")
     
-    with st.expander("⚙️ Merging Settings", expanded=False):
-        low_cpu_mem = st.checkbox("Low CPU Memory", value=False, help="Avoid loading full model in host RAM (saves RAM, slightly slower)")
-        copy_tokenizer = st.checkbox("Copy Tokenizer", value=True, help="Copy tokenizer from the base model")
-        trust_remote_code = st.checkbox("Trust Remote Code", value=False, help="Allow custom code from model repos")
-        lazy_unpickle = st.checkbox("Lazy Unpickle", value=False, help="Use lazy unpickling for weights")
-
-    st.session_state.merge_settings = {
-        "low_cpu_mem": low_cpu_mem,
-        "copy_tokenizer": copy_tokenizer,
-        "trust_remote_code": trust_remote_code,
-        "lazy_unpickle": lazy_unpickle
-    }
-
     tab_new, tab_load = st.tabs(["New Mission", "Resume"])
     
     with tab_new:
@@ -585,7 +572,7 @@ if st.session_state.current_experiment:
                                   0, num_cycles, "Initializing evolution engine...",
                                   best_score=exp['best_score'])
                     
-                    base_evo = EvolutionEngine(st.session_state.runner, merge_settings=st.session_state.get("merge_settings"))
+                    base_evo = EvolutionEngine(st.session_state.runner)
                     
                     evo_logged = EvolutionWithLogging(
                         evolution_engine=base_evo,

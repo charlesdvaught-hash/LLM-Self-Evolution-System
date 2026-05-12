@@ -25,8 +25,7 @@ class AdvancedMerger:
         logger.info("AdvancedMerger initialized with Mergekit + FusionBench backends")
     
     def dare_merge(self, base_model: str, models: List[str], 
-                  output_path: str, drop_rate: float = 0.1,
-                  **kwargs) -> Optional[str]:
+                  output_path: str, drop_rate: float = 0.1) -> Optional[str]:
         """
         Drop And REscale (DARE) merging via Mergekit.
         """
@@ -40,11 +39,10 @@ class AdvancedMerger:
         )
         
         output_name = os.path.basename(output_path)
-        return self.mergekit.run_merge(config_path, output_name, **kwargs)
+        return self.mergekit.run_merge(config_path, output_name)
     
     def ties_merge(self, base_model: str, models: List[str],
-                  output_path: str, threshold: float = 0.9,
-                  **kwargs) -> Optional[str]:
+                  output_path: str, threshold: float = 0.9) -> Optional[str]:
         """
         TIES (Trim, Interleave, Elect Subnets) merging via Mergekit.
         """
@@ -58,11 +56,10 @@ class AdvancedMerger:
         )
         
         output_name = os.path.basename(output_path)
-        return self.mergekit.run_merge(config_path, output_name, **kwargs)
+        return self.mergekit.run_merge(config_path, output_name)
     
     def slerp_merge(self, base_model: str, models: List[str],
-                   output_path: str, weights: Optional[List[float]] = None,
-                   **kwargs) -> Optional[str]:
+                   output_path: str, weights: Optional[List[float]] = None) -> Optional[str]:
         """
         Spherical Linear Interpolation (SLERP) merging via Mergekit.
         """
@@ -76,11 +73,10 @@ class AdvancedMerger:
         )
         
         output_name = os.path.basename(output_path)
-        return self.mergekit.run_merge(config_path, output_name, **kwargs)
+        return self.mergekit.run_merge(config_path, output_name)
     
     def moe_merge(self, base_model: str, models: List[str],
-                 output_path: str, num_experts: Optional[int] = None,
-                 **kwargs) -> Optional[str]:
+                 output_path: str, num_experts: Optional[int] = None) -> Optional[str]:
         """
         Mixture-of-Experts merging via Mergekit.
         Combines models as specialized experts with routing.
@@ -95,11 +91,10 @@ class AdvancedMerger:
         )
         
         output_name = os.path.basename(output_path)
-        return self.mergekit.run_merge(config_path, output_name, **kwargs)
+        return self.mergekit.run_merge(config_path, output_name)
     
     def rmm_merge(self, models: List[str], output_path: str,
-                 threshold: float = 0.5,
-                 **kwargs) -> Optional[str]:
+                 threshold: float = 0.5) -> Optional[str]:
         """
         Resurrection by Majority Merging (RMM).
         Uses majority voting on model weights.
@@ -117,21 +112,19 @@ class AdvancedMerger:
         )
         
         output_name = os.path.basename(output_path)
-        return self.mergekit.run_merge(config_path, output_name, **kwargs)
+        return self.mergekit.run_merge(config_path, output_name)
     
     def task_arithmetic_merge(self, base_model: str, models: List[str],
-                             output_path: str, weights: Optional[List[float]] = None,
-                             **kwargs) -> Optional[str]:
+                             output_path: str, weights: Optional[List[float]] = None) -> Optional[str]:
         """
         Task Arithmetic (FusionBench):
         Result = base + α*δ_A + β*δ_B where δ = model - base
         """
         logger.info(f"Task Arithmetic: {len(models)} models")
-        return self.fusionbench.task_arithmetic_merge(base_model, models, output_path, weights, **kwargs)
+        return self.fusionbench.task_arithmetic_merge(base_model, models, output_path, weights)
     
     def negmerge(self, base_model: str, positive_models: List[str],
-                negative_model: str, output_path: str,
-                **kwargs) -> Optional[str]:
+                negative_model: str, output_path: str) -> Optional[str]:
         """
         Negative Merging - subtract unwanted model directions.
         """
@@ -148,7 +141,7 @@ class AdvancedMerger:
         )
         
         output_name = os.path.basename(output_path)
-        return self.mergekit.run_merge(config_path, output_name, **kwargs)
+        return self.mergekit.run_merge(config_path, output_name)
     
     def regmean_merge(self, base_model: str, models: List[str],
                      output_path: str, weights: Optional[List[float]] = None,

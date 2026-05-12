@@ -289,7 +289,7 @@ Each variant represents a different set of hyperparameters.
         return commentary
     
     def generate_recipe(self, goal: str, available_models: List[str], 
-                       available_methods: List[str]) -> str:
+                       available_methods: List[str], hardware_constraints: Dict = None) -> str:
         """
         Backward-compatible method for simple recipe generation.
         (Called by existing UI code)
@@ -303,9 +303,22 @@ Each variant represents a different set of hyperparameters.
             methods=available_methods,
             num_variants_per_method=2
         )
+
+        # Add hardware advisory if constraints provided
+        hw_note = ""
+        if hardware_constraints:
+            from breeding_vat.utils.hardware import predict_resources, get_risk_assessment
+            # Check a demanding method like MOE or TIES
+            pred = predict_resources("ties", [7.0, 7.0]) # Assume 7B models for a safe estimate
+            risk = get_risk_assessment(pred, hardware_constraints)
+
+            if risk["max_risk"] > 80:
+                hw_note = f"\n\n⚠️ **HARDWARE WARNING**: Your current system has a high failure risk ({risk['max_risk']:.1f}%). I recommend using 'Speedy' mode or smaller base models."
+            elif risk["max_risk"] > 50:
+                hw_note = f"\n\nℹ️ **Hardware Note**: System resources are moderate ({risk['max_risk']:.1f}% risk). Close other applications for stability."
         
         # Format as text for display
-        output = recipe_options["advisory_note"] + "\n\n**Generated Recipes:**\n"
+        output = recipe_options["advisory_note"] + hw_note + "\n\n**Generated Recipes:**\n"
         
         for i, recipe in enumerate(recipe_options["recipes"], 1):
             output += f"\n{i}. {recipe['method'].upper()} (Variant {recipe.get('variant_id', 1)})\n"

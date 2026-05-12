@@ -41,21 +41,12 @@ class EvolutionWithLogging:
     
     def run_waterfall(self, base_models: List[str], goal: str, num_cycles: int,
                      culling_rate: float = 50, allowed_methods: List[str] = None,
-                     resume_from_cycle: int = 0) -> Dict:
+                     resume_from_cycle: int = 0, models_per_evolution: int = 2,
+                     min_passing_score: float = 0.0, second_chances: bool = False,
+                     include_sae: bool = False, duration_mode: str = "Balanced") -> Dict:
         """
         Run evolution with logging and progress updates.
         Wraps the underlying EvolutionEngine.run_waterfall().
-        
-        Args:
-            base_models: List of base model IDs
-            goal: User goal description
-            num_cycles: Number of evolution cycles
-            culling_rate: Percentage of models to keep
-            allowed_methods: Merge methods to use
-            resume_from_cycle: If resuming, start from this cycle (0-based)
-            
-        Returns:
-            Best model dict with name, score, path
         """
         try:
             # Update experiment config
@@ -68,11 +59,13 @@ class EvolutionWithLogging:
             with open(self.experiment['paths']['master_log'], 'a') as f:
                 f.write(f"\n{'='*80}\n")
                 f.write(f"EVOLUTION RUN STARTED\n")
-                f.write(f"Resume from cycle: {resume_from_cycle}\n")
+                f.write(f"Duration Mode: {duration_mode}\n")
                 f.write(f"Total cycles: {num_cycles}\n")
                 f.write(f"Base models: {', '.join(base_models)}\n")
                 f.write(f"Merge methods: {', '.join(allowed_methods or ['slerp'])}\n")
+                f.write(f"Models per evolution: {models_per_evolution}\n")
                 f.write(f"Culling rate: {culling_rate}%\n")
+                f.write(f"Min Passing Score: {min_passing_score}\n")
                 f.write(f"{'='*80}\n\n")
             
             self._emit_progress(0, num_cycles, "Initializing evolution...")
@@ -83,7 +76,12 @@ class EvolutionWithLogging:
                 goal=goal,
                 cycles=num_cycles,
                 culling_rate=culling_rate,
-                allowed_methods=allowed_methods or ["slerp"]
+                allowed_methods=allowed_methods or ["slerp"],
+                models_per_evolution=models_per_evolution,
+                min_passing_score=min_passing_score,
+                second_chances=second_chances,
+                experiment_id=self.experiment.get('id'),
+                include_sae=include_sae
             )
             
             # Log final result

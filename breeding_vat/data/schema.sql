@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS models (
     lineage_parent_id INTEGER,
     status TEXT DEFAULT 'pending',
     cycle_number INTEGER,
+    method TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (experiment_id) REFERENCES experiments(id),
     FOREIGN KEY (lineage_parent_id) REFERENCES models(id)

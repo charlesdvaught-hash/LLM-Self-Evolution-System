@@ -57,12 +57,18 @@ class TaskRunner:
             logger.error(f"Task failed: {e.stderr}")
             raise
 
-    def log_model(self, name, base_models, recipe_path, parent_id=None):
+    def log_model(self, name, base_models, recipe_path, experiment_id=None, parent_id=None, benchmark_results=None, cycle_number=None, status='completed'):
+        """Log a model to the database with full metadata."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+
+        bench_str = json.dumps(benchmark_results) if benchmark_results else None
+
         cursor.execute(
-            "INSERT INTO models (name, base_models, recipe_path, lineage_parent_id, status) VALUES (?, ?, ?, ?, ?)",
-            (name, json.dumps(base_models), recipe_path, parent_id, 'completed')
+            """INSERT INTO models
+               (name, experiment_id, base_models, recipe_path, lineage_parent_id, benchmark_results, cycle_number, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (name, experiment_id, json.dumps(base_models), recipe_path, parent_id, bench_str, cycle_number, status)
         )
         model_id = cursor.lastrowid
         conn.commit()

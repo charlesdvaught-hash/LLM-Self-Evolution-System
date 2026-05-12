@@ -25,6 +25,7 @@ from breeding_vat.modules.experiment_manager import ExperimentManager
 from breeding_vat.modules.evolution.evolution_with_logging import EvolutionWithLogging
 from breeding_vat.modules.model_transfer import ModelTransfer
 from breeding_vat.orchestrator.runner import TaskRunner
+from breeding_vat.modules.seeding import seed_database
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -105,6 +106,7 @@ def init_system():
         os.makedirs(d, exist_ok=True)
     
     runner = TaskRunner()
+    seed_database(runner.db_path)
     exp_manager = ExperimentManager()
     merger = AdvancedMerger(runner)
     model_transfer = ModelTransfer()

@@ -1,0 +1,17 @@
+recipe_name: dfs_merge
+
+simple_explanation: >
+  DFS explores merge paths recursively and searches
+  for combinations that maximize benchmark performance.
+
+best_for:
+  - evolutionary search
+
+bad_for:
+  - fast experimentation
+
+strengths:
+  - deep exploration
+
+risks:
+  - GPU expensive

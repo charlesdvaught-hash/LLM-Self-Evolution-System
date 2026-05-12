@@ -1,0 +1,19 @@
+recipe_name: nearswap_merge
+
+simple_explanation: >
+  Nearswap swaps only parameters that are already similar.
+  This avoids shocking the model with incompatible changes.
+
+best_for:
+  - stable merges
+  - same-family checkpoints
+
+bad_for:
+  - highly divergent experts
+
+strengths:
+  - safe
+  - low instability
+
+risks:
+  - weak capability gains

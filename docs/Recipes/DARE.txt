@@ -1,0 +1,29 @@
+recipe_name: dare_merge
+
+simple_explanation: >
+  DARE keeps only the most important parameter changes
+  and throws away weaker ones. This creates sparse merges
+  that preserve specialized abilities better.
+
+best_for:
+  - reasoning
+  - coding
+  - specialist retention
+
+bad_for:
+  - multilingual balancing
+  - weak tiny models
+
+strengths:
+  - low forgetting
+  - preserves sharp capabilities
+
+risks:
+  - instability if too sparse
+
+compatible_with:
+  - TIES
+  - Breadcrumbs
+
+conflicts_with:
+  - dense averaging

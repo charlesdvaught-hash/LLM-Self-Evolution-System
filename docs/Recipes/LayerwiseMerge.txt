@@ -1,0 +1,25 @@
+recipe_name: layerwise_merge
+
+simple_explanation: >
+  Different layers get different merge strengths.
+  Lower layers may preserve language understanding,
+  while upper layers specialize reasoning or coding.
+
+best_for:
+  - advanced optimization
+  - reasoning retention
+
+bad_for:
+  - quick experiments
+
+strengths:
+  - highly controllable
+
+risks:
+  - overengineering
+
+compatible_with:
+  - almost everything
+
+conflicts_with:
+  - none major

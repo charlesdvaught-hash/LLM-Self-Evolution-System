@@ -1,0 +1,17 @@
+recipe_name: sparse_upcycling
+
+simple_explanation: >
+  Sparse upcycling converts dense knowledge
+  into sparse expert pathways for efficient scaling.
+
+best_for:
+  - MoE transitions
+
+bad_for:
+  - small models
+
+strengths:
+  - scalable sparsity
+
+risks:
+  - routing fragmentation

@@ -1,0 +1,25 @@
+recipe_name: task_arithmetic
+
+simple_explanation: >
+  Task arithmetic treats capabilities like math vectors.
+  The system adds or subtracts skills from models
+  to create new combinations.
+
+best_for:
+  - coding specialists
+  - adding capabilities
+
+bad_for:
+  - unrelated architectures
+
+strengths:
+  - precise skill transfer
+
+risks:
+  - unstable latent routing
+
+compatible_with:
+  - layerwise merges
+
+conflicts_with:
+  - tokenizer mismatch

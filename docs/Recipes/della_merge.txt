@@ -1,0 +1,21 @@
+recipe_name: della_merge
+
+simple_explanation: >
+  DELLA dynamically decides which parameters matter most
+  during merging and adjusts transfer strength automatically.
+
+best_for:
+  - adaptive merges
+  - evolving systems
+
+bad_for:
+  - tiny datasets
+
+strengths:
+  - adaptive transfer
+
+risks:
+  - unstable tuning
+
+compatible_with:
+  - evolutionary search

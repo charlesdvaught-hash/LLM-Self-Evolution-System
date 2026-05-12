@@ -1,0 +1,17 @@
+recipe_name: multislerp
+
+simple_explanation: >
+  Multi-SLERP extends SLERP to many models at once,
+  creating smoother multi-model blends.
+
+best_for:
+  - generalist supermodels
+
+bad_for:
+  - sharp specialization
+
+strengths:
+  - smooth capability fusion
+
+risks:
+  - capability dilution

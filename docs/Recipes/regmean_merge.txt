@@ -1,0 +1,17 @@
+recipe_name: regmean_merge
+
+simple_explanation: >
+  RegMean averages parameters while correcting
+  for hidden activation differences between models.
+
+best_for:
+  - stable transfer
+
+bad_for:
+  - unrelated architectures
+
+strengths:
+  - less destructive averaging
+
+risks:
+  - slower merges

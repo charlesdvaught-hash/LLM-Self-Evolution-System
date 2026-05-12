@@ -1,0 +1,17 @@
+recipe_name: depth_upscaling
+
+simple_explanation: >
+  Depth upscaling adds or duplicates layers
+  to increase reasoning depth before merging.
+
+best_for:
+  - reasoning expansion
+
+bad_for:
+  - latency-sensitive systems
+
+strengths:
+  - stronger reasoning chains
+
+risks:
+  - unstable gradients

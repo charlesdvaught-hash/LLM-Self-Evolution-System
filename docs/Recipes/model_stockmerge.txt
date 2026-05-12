@@ -1,0 +1,17 @@
+recipe_name: model_stock
+
+simple_explanation: >
+  Model Stock creates a weighted "portfolio" of models,
+  similar to balancing financial investments.
+
+best_for:
+  - balanced generalists
+
+bad_for:
+  - highly specialized reasoning
+
+strengths:
+  - smooth balancing
+
+risks:
+  - mediocre specialization

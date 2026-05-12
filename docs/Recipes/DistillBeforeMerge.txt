@@ -1,0 +1,18 @@
+recipe_name: distill_then_merge
+
+simple_explanation: >
+  Models are first distilled into cleaner compressed forms,
+  then merged afterward. This reduces noise and redundancy.
+
+best_for:
+  - compact reasoning systems
+
+bad_for:
+  - preserving creativity
+
+strengths:
+  - cleaner merges
+  - lower entropy
+
+risks:
+  - synthetic bias accumulation

@@ -1,0 +1,33 @@
+recipe_name: linear_merge
+
+simple_explanation: >
+  Linear merge simply averages model weights together.
+  Think of it like blending two paints evenly into one color.
+  It is the simplest merge method and often works surprisingly well for similar models.
+
+best_for:
+  - same-family checkpoints
+  - safe baseline merges
+  - alignment retention
+
+bad_for:
+  - highly specialized experts
+  - reasoning preservation
+  - sparse systems
+
+strengths:
+  - simple
+  - fast
+  - stable
+
+risks:
+  - washes out capabilities
+  - averaging destroys specialization
+
+compatible_with:
+  - SLERP
+  - layerwise weighting
+
+conflicts_with:
+  - Frankenmerge
+  - sparse delta systems

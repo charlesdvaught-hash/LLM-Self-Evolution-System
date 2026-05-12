@@ -1,0 +1,28 @@
+recipe_name: breadcrumbs_merge
+
+simple_explanation: >
+  Breadcrumbs transfers only tiny "important traces"
+  from one model into another. It is designed to avoid
+  overwhelming small models during merges.
+
+best_for:
+  - 1B–4B models
+  - edge deployment
+  - compact reasoning models
+
+bad_for:
+  - giant dense systems
+
+strengths:
+  - lightweight
+  - stable for small models
+
+risks:
+  - under-transfer of capabilities
+
+compatible_with:
+  - quantization
+  - DARE
+
+conflicts_with:
+  - MoE routing

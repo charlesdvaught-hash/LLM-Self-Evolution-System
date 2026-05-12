@@ -1,0 +1,36 @@
+| Technology   | Works Well With   | Clashes With      |
+| ------------ | ----------------- | ----------------- |
+| TIES         | DARE, SLERP       | Frankenmerge      |
+| DARE         | Sparse models     | Dense averaging   |
+| SLERP        | Alignment         | Extreme sparsity  |
+| Breadcrumbs  | Small models      | MoE               |
+| MoE          | LaSER routing     | Quantized routers |
+| Frankenmerge | Layer swaps       | Mixed tokenizers  |
+| Distillation | Evolution         | Raw creativity    |
+| Quantization | Breadcrumbs       | Frankenmerge      |
+| LaSER        | MoE routing       | None significant  |
+| SCOPE        | Evolution scoring | Final inference   |
+
+
+What Your Advisor Should Actually Do
+
+Your advisor should not merely say:
+
+use TIES
+
+It should reason like:
+
+TIES + DARE recommended because:
+- models share tokenizer family
+- latent similarity high
+- coding benchmark target detected
+- EvoEval brittleness risk acceptable
+- MoE routing unnecessary
+
+That is the difference between:
+
+merge automation
+vs
+merge intelligence
+
+List the best most reliable options, the options with the most potential, and 2-3 other interesting prospects that should work as well. The user can decide to refine, add, delete and so on

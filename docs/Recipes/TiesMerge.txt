@@ -1,0 +1,29 @@
+recipe_name: ties_merge
+
+simple_explanation: >
+  TIES looks at where models disagree and resolves conflicts intelligently.
+  Instead of averaging everything, it keeps the strongest signals
+  while removing contradictory changes.
+
+best_for:
+  - reasoning
+  - coding
+  - leaderboard optimization
+
+bad_for:
+  - unrelated architectures
+  - tokenizer mismatches
+
+strengths:
+  - preserves strong capabilities
+  - reduces destructive interference
+
+risks:
+  - benchmark overfitting
+
+compatible_with:
+  - DARE
+  - sparse merges
+
+conflicts_with:
+  - unstable Frankenmerges

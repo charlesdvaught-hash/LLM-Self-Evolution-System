@@ -1,0 +1,27 @@
+recipe_name: passthrough_merge
+
+simple_explanation: >
+  Passthrough keeps whole layers or modules from one model
+  while replacing others from another model.
+  It works more like assembling parts than averaging.
+
+best_for:
+  - MoE systems
+  - specialist experts
+  - layer grafting
+
+bad_for:
+  - unstable architectures
+
+strengths:
+  - preserves experts well
+
+risks:
+  - severe incompatibilities
+
+compatible_with:
+  - MoE
+  - latent routing
+
+conflicts_with:
+  - dense averaging

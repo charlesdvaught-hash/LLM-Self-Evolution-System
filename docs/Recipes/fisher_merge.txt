@@ -1,0 +1,17 @@
+recipe_name: fisher_merge
+
+simple_explanation: >
+  Fisher merging weighs parameters based on how important
+  they are to the original model's performance.
+
+best_for:
+  - preserving critical skills
+
+bad_for:
+  - noisy checkpoints
+
+strengths:
+  - intelligent preservation
+
+risks:
+  - expensive calculations

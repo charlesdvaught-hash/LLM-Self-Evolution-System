@@ -1,0 +1,25 @@
+recipe_name: frankenmerge
+
+simple_explanation: >
+  Frankenmerge literally stitches together layers from different models.
+  It is highly experimental and can create surprising emergent behavior.
+
+best_for:
+  - research
+  - experimental evolution
+
+bad_for:
+  - production systems
+
+strengths:
+  - unexpected capability emergence
+
+risks:
+  - catastrophic instability
+
+compatible_with:
+  - MoE
+  - latent scoring
+
+conflicts_with:
+  - quantization

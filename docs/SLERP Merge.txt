@@ -1,0 +1,29 @@
+recipe_name: slerp_merge
+
+simple_explanation: >
+  SLERP merges models by moving smoothly across a curved mathematical path
+  instead of averaging directly. This helps preserve the "direction"
+  of learned abilities better than normal averaging.
+
+best_for:
+  - instruction models
+  - stable generalists
+  - alignment preservation
+
+bad_for:
+  - sparse experts
+  - aggressive reasoning specialization
+
+strengths:
+  - smoother transitions
+  - less destructive averaging
+
+risks:
+  - can flatten specialist skills
+
+compatible_with:
+  - layerwise merging
+  - alignment repair
+
+conflicts_with:
+  - high sparsity methods

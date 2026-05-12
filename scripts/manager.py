@@ -10,14 +10,11 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 # Docker images to build and manage
-# Note: breeding-vat-mergekit is deprecated - use breeding-vat-merge instead
 REQUIRED_IMAGES = {
     "breeding-vat-ui": "docker/Dockerfile.ui",
-    "breeding-vat-merge": "docker/Dockerfile.merge",  # MergeKit + FusionBench
+    "breeding-vat-merge": "docker/Dockerfile.merge",
     "breeding-vat-eval": "docker/Dockerfile.eval",
     "breeding-vat-sae": "docker/Dockerfile.sae"
-    # Optional (for advanced features):
-    # "breeding-vat-fusionbench": "docker/Dockerfile.fusionbench"
 }
 
 def is_port_in_use(port):
@@ -152,7 +149,6 @@ def rebuild_image(name, dockerfile, force=False):
     """Rebuild a Docker image."""
     logger.info(f"Building {name}...")
     
-    # Remove old image if force rebuild
     if force and image_exists(name):
         logger.info(f"Force rebuild: removing old {name} image...")
         subprocess.run(["docker", "image", "rm", name, "-f"], capture_output=True)
@@ -183,7 +179,6 @@ def ensure_images(force_rebuild=False):
         else:
             status[name] = ("missing", "0B")
     
-    # Report status
     missing = [k for k, (s, _) in status.items() if s == "missing"]
     if not missing and not force_rebuild:
         logger.info("[✓] All systems operational.")
@@ -269,7 +264,6 @@ def run_ui(reuse_container=True):
     Args:
         reuse_container: If True, reuse existing container if healthy
     """
-    # Verify images are available
     if not ensure_images():
         logger.error("[X] Environment setup failed. Run 'setup.bat' to initialize.")
         return False
@@ -278,7 +272,6 @@ def run_ui(reuse_container=True):
     host_pwd = os.getcwd()
     container_name = "breeding-vat-ui"
 
-    # Check for existing container
     existing_cid = get_container_id(container_name)
     if existing_cid and reuse_container:
         is_healthy = is_container_healthy(existing_cid)
@@ -313,7 +306,6 @@ def run_ui(reuse_container=True):
                 else:
                     logger.warning("Could not restart container.")
             
-            # Ask user if they want to rebuild
             rebuild_choice = input("Rebuild container? (y/n): ").strip().lower() == 'y'
             if rebuild_choice:
                 logger.info("Removing old container and rebuilding...")
@@ -322,7 +314,6 @@ def run_ui(reuse_container=True):
                 logger.info("Skipping container recreation. Exiting.")
                 return False
 
-    # Create new container
     logger.info(f"[🧬] Launching Control Room on port {target_port}...")
 
     docker_cmd = [
@@ -378,6 +369,16 @@ if __name__ == "__main__":
             ensure_images(force_rebuild=True)
             logger.info("[✓] Images rebuilt. Run 'run.bat' to start.")
             
+        elif sys.argv[1] == "repair":
+            logger.info("🔧 REPAIR MODE: Checking and fixing issues...")
+            logger.info("[1/3] Verifying Docker images...")
+            ensure_images()
+            logger.info("[2/3] Cleaning up stopped containers...")
+            cleanup_old_containers()
+            logger.info("[3/3] Verifying data directories...")
+            ensure_directories()
+            logger.info("[✓] Repair complete. Run 'run.bat' to start.")
+            
         elif sys.argv[1] == "clean":
             stop_all_vat_containers()
             cleanup_old_containers()
@@ -395,12 +396,13 @@ if __name__ == "__main__":
             logger.info("[✓] System reset complete. Run 'run.bat' to start fresh.")
             
         else:
-            print("Unknown command. Usage: manager.py [run|verify|rebuild|clean|reset]")
+            print("Unknown command. Usage: manager.py [run|verify|rebuild|repair|clean|reset]")
     else:
         print("Breeding Vat Container Manager")
-        print("Usage: manager.py [run|verify|rebuild|clean|reset]")
+        print("Usage: manager.py [run|verify|rebuild|repair|clean|reset]")
         print("  run     - Start UI (reuses existing container if healthy)")
         print("  verify  - Check environment & images")
         print("  rebuild - Force rebuild all Docker images")
+        print("  repair  - Smart repair: check images, rebuild missing, clean stopped containers")
         print("  clean   - Stop and remove stopped containers")
         print("  reset   - Full reset (remove all, rebuild images)")

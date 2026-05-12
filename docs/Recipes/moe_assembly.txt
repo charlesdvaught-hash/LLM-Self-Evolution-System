@@ -1,0 +1,24 @@
+recipe_name: moe_assembly
+
+simple_explanation: >
+  Instead of one merged brain, MoE creates multiple experts
+  and a router decides which expert should answer.
+
+best_for:
+  - coding/reasoning separation
+  - scalable systems
+
+bad_for:
+  - low VRAM environments
+
+strengths:
+  - preserves specialization
+
+risks:
+  - routing collapse
+
+compatible_with:
+  - LaSER routing
+
+conflicts_with:
+  - static routing

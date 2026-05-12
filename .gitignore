@@ -1,18 +1,103 @@
-# Git
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+.venv
 env/
 venv/
-.env
+ENV/
+env.bak/
+venv.bak/
 
-# Database
-breeding_vat/data/*.db
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
 
-# Model weights (Large files)
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Data & Models (large files)
+breeding_vat/data/
+breeding_vat/data/experiments/
 breeding_vat/data/merged_models/
+breeding_vat/data/eval_results/
+breeding_vat/data/sae_analysis/
+breeding_vat/data/model_zoo/
+*.gguf
 *.safetensors
 *.bin
+*.pt
 *.pth
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+breeding_vat/logs/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Temporary
+*.tmp
+*.temp
+*.bak
+*~
+
+# Node (if used)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Backups
+*_backup.*
+*_old.*
+app_old.py
+app_original_backup.py
+app_v2_revamped.py
+app_v3_dual_mode.py

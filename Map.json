@@ -1,0 +1,646 @@
+{
+  "version": "2.0",
+  "last_updated": "2025-01-15",
+  "description": "Complete file inventory of The Breeding Vat - every file, its purpose, and dependencies",
+  "repository_root": "breeding-vat",
+
+  "root_level": {
+    "setup.bat": {
+      "type": "batch script",
+      "purpose": "One-click environment setup. Builds Docker images, initializes directories, verifies Docker",
+      "executable": true,
+      "calls": ["scripts/manager.py rebuild"],
+      "outputs": ["Docker images built"],
+      "entry_point": true
+    },
+    "run.bat": {
+      "type": "batch script",
+      "purpose": "One-click launch. Checks Docker running, launches Streamlit UI via manager.py",
+      "executable": true,
+      "calls": ["scripts/manager.py run"],
+      "outputs": ["UI on http://localhost:8501"],
+      "entry_point": true
+    },
+    "status.bat": {
+      "type": "batch script",
+      "purpose": "Check system status - Docker, images, containers",
+      "executable": true
+    },
+    "README.md": {
+      "type": "documentation",
+      "purpose": "Top-level project overview, features, quick start",
+      "audience": ["users", "developers"],
+      "linked_by": ["docs/index.md"]
+    },
+    "LICENSE": {
+      "type": "license",
+      "purpose": "Software license (Apache 2.0 or similar)",
+      "audience": ["legal"]
+    },
+    "requirements.txt": {
+      "type": "configuration",
+      "purpose": "Python package dependencies for local development",
+      "packages": ["streamlit", "torch", "transformers", "pyyaml"],
+      "note": "Most packages installed in Docker images, not locally"
+    },
+    ".gitignore": {
+      "type": "configuration",
+      "purpose": "Git ignore rules - excludes models, databases, cache",
+      "size": "6.5 KB",
+      "excludes": ["*.db", "*.bin", "*.safetensors", "__pycache__", ".venv"]
+    },
+    ".gitattributes": {
+      "type": "configuration",
+      "purpose": "Git line ending configuration for cross-platform compatibility",
+      "size": "3.3 KB"
+    },
+    ".env.template": {
+      "type": "configuration",
+      "purpose": "Template for environment variables (optional, rarely used)",
+      "example_vars": ["HUGGINGFACE_TOKEN"]
+    },
+    ".streamlit": {
+      "type": "directory",
+      "purpose": "Streamlit configuration",
+      "contents": {
+        "config.toml": {
+          "type": "configuration",
+          "purpose": "Streamlit UI settings (theme, logging, etc)"
+        }
+      }
+    },
+    "AI_KNOWLEDGE_BASE.md": {
+      "type": "documentation",
+      "purpose": "Reference for AI assistants - system overview, architecture, troubleshooting",
+      "audience": ["ai", "developers"],
+      "deprecated_note": "Superseded by Map.json (this file) and Architecture.md - kept for reference"
+    }
+  },
+
+  "breeding_vat": {
+    "path": "breeding_vat/",
+    "type": "main application package",
+    "purpose": "Core application logic - UI, evolution engine, modules",
+
+    "__init__.py": {
+      "type": "python package",
+      "purpose": "Package marker"
+    },
+
+    "ui": {
+      "path": "breeding_vat/ui/",
+      "purpose": "Streamlit user interface",
+      "app.py": {
+        "type": "python module",
+        "size": "30+ KB",
+        "purpose": "Main Streamlit UI - tabs, sidebars, controls",
+        "recent_changes": "Added FusionBench method selection, parameter controls, Methods reference tab",
+        "imports": [
+          "breeding_vat.modules.merge.advisor",
+          "breeding_vat.modules.merge.evolution",
+          "breeding_vat.modules.merge.merger",
+          "breeding_vat.modules.sae.scoped_analyzer",
+          "breeding_vat.modules.experiment_manager",
+          "breeding_vat.modules.evolution.evolution_with_logging",
+          "breeding_vat.orchestrator.runner"
+        ],
+        "classes": ["None - single-file Streamlit app"],
+        "key_functions": [
+          "init_system() - setup runner and experiment manager",
+          "get_merging_methods() - returns 20+ methods from AdvancedMerger",
+          "update_progress() - real-time UI updates",
+          "log_to_ui() - timestamped logging"
+        ]
+      }
+    },
+
+    "modules": {
+      "path": "breeding_vat/modules/",
+      "purpose": "Functional modules - evolution, merging, evaluation, analysis",
+
+      "experiment_manager.py": {
+        "type": "python module",
+        "purpose": "Create/load/manage experiments, logging, model metadata",
+        "classes": ["ExperimentManager"],
+        "key_methods": [
+          "create_experiment() - new dated experiment folder",
+          "load_experiment() - resume from existing",
+          "list_experiments() - show all available",
+          "log_cycle() - record cycle results",
+          "save_model() - save merged model + metadata",
+          "_save_metadata() - persist experiment.json"
+        ],
+        "outputs": "breeding_vat/data/experiments/{timestamp}/"
+      },
+
+      "merge": {
+        "path": "breeding_vat/modules/merge/",
+        "purpose": "Model merging strategies and orchestration",
+
+        "fusionbench_engine.py": {
+          "type": "python module",
+          "size": "13 KB",
+          "recent": "NEW - FusionBench integration",
+          "purpose": "FusionBench wrapper - 13+ merging methods",
+          "classes": [
+            "FusionBenchConfigBuilder - generates YAML configs",
+            "FusionBenchEngine - 13+ methods (Task Arithmetic, RegMean, Voting, etc)"
+          ],
+          "methods": {
+            "task_arithmetic_merge": "Result = base + α*δ_A + β*δ_B",
+            "regmean_merge": "Regression-based mean with optimization",
+            "voting_merge": "Majority voting on weight values",
+            "magnitude_prune_merge": "Sparse by magnitude threshold",
+            "frankenmerge": "Layer-wise expert selection",
+            "git_rebasin_merge": "Geometric mean in task vector space"
+          }
+        },
+
+        "merger.py": {
+          "type": "python module",
+          "size": "8.5 KB",
+          "recent": "UPDATED - routes to both MergeKit and FusionBench",
+          "purpose": "Main merging interface - dispatches to engines",
+          "classes": ["AdvancedMerger"],
+          "key_methods": [
+            "slerp_merge, ties_merge, dare_merge (MergeKit)",
+            "task_arithmetic_merge, regmean_merge, voting_merge (FusionBench)",
+            "get_available_methods() - returns all 20+ methods"
+          ],
+          "backends": ["MergeKit (7 methods)", "FusionBench (13+ methods)"]
+        },
+
+        "mergekit_engine.py": {
+          "type": "python module",
+          "purpose": "MergeKit wrapper - classical interpolation methods",
+          "classes": [
+            "MergekitConfigBuilder - generates merge configs",
+            "MergekitEngine - orchestrates merges via Docker"
+          ],
+          "methods": {
+            "slerp": "Spherical linear interpolation",
+            "ties": "Trim, Interleave, Elect Subnets",
+            "dare": "Drop And REscale",
+            "task_arithmetic": "Vector arithmetic",
+            "moe": "Mixture of Experts",
+            "rmm": "Resurrection by Majority Merging"
+          }
+        },
+
+        "advisor.py": {
+          "type": "python module",
+          "purpose": "AI advisor (0.8B model) - generates merge recipes",
+          "classes": ["MergeAdvisor"],
+          "model": "Qwen/Qwen2.5-0.8B-Instruct",
+          "key_methods": [
+            "generate_recipe() - LLM suggests merge strategy"
+          ]
+        },
+
+        "evolution.py": {
+          "type": "python module",
+          "purpose": "Core evolution algorithm - merge/eval/cull loop",
+          "classes": ["EvolutionEngine"],
+          "key_methods": [
+            "run_waterfall() - main loop: repeat {merge, eval, cull}"
+          ]
+        },
+
+        "pipeline.py": {
+          "type": "python module",
+          "purpose": "Multi-stage merge pipelines (advanced feature)"
+        },
+
+        "task_arithmetic.py": {
+          "type": "python module",
+          "purpose": "Task arithmetic helper utilities"
+        }
+      },
+
+      "evolution": {
+        "path": "breeding_vat/modules/evolution/",
+        "purpose": "Evolution pipeline with logging and introspection",
+
+        "evolution_with_logging.py": {
+          "type": "python module",
+          "purpose": "Wraps EvolutionEngine with logging, progress callbacks",
+          "classes": ["EvolutionWithLogging"],
+          "key_methods": [
+            "run_waterfall() - same as EvolutionEngine but with callbacks and logging"
+          ]
+        },
+
+        "adaptive_introspection.py": {
+          "type": "python module",
+          "purpose": "SAE introspection during evolution (research feature)"
+        },
+
+        "creativity_slider.py": {
+          "type": "python module",
+          "purpose": "User control over exploration vs exploitation"
+        }
+      },
+
+      "benchmark": {
+        "path": "breeding_vat/modules/benchmark/",
+        "purpose": "Model evaluation and fitness scoring",
+
+        "prediction_engine.py": {
+          "type": "python module",
+          "purpose": "Predict model fitness without full evaluation (future feature)"
+        },
+
+        "fusion_bench_wrapper.py": {
+          "type": "python module",
+          "purpose": "Wrapper for FusionBench evaluation"
+        }
+      },
+
+      "sae": {
+        "path": "breeding_vat/modules/sae/",
+        "purpose": "Sparse Autoencoder analysis - layer-wise introspection",
+
+        "scoped_analyzer.py": {
+          "type": "python module",
+          "size": "10+ KB",
+          "purpose": "SAE analysis with streaming memory optimization",
+          "classes": ["SAEScopedAnalyzer"],
+          "key_methods": [
+            "analyze_self() - analyze model layers for specialized features",
+            "Memory efficient for models 0.5B-70B"
+          ]
+        }
+      },
+
+      "train": {
+        "path": "breeding_vat/modules/train/",
+        "purpose": "Fine-tuning and LoRA training (future expansion)",
+
+        "trainer.py": {
+          "type": "python module",
+          "purpose": "Training orchestration using PEFT/LoRA"
+        }
+      }
+    },
+
+    "orchestrator": {
+      "path": "breeding_vat/orchestrator/",
+      "purpose": "Container and task orchestration",
+
+      "runner.py": {
+        "type": "python module",
+        "size": "15+ KB",
+        "purpose": "Docker task runner - launches containers, manages execution",
+        "classes": ["TaskRunner"],
+        "key_methods": [
+          "run_docker_task() - execute command in specific container",
+          "with_volumes() - mount host directories",
+          "with_gpus() - GPU allocation"
+        ]
+      }
+    },
+
+    "data": {
+      "path": "breeding_vat/data/",
+      "type": "generated at runtime",
+      "purpose": "Data storage - models, experiments, databases",
+
+      "schema.sql": {
+        "type": "database schema",
+        "purpose": "SQLite schema for breeding.db",
+        "tables": [
+          "experiments - metadata, goals, cycles",
+          "models - merged models, lineage, scores",
+          "recipes - merge configs and parameters",
+          "sae_discoveries - layer features"
+        ]
+      },
+
+      "breeding.db": {
+        "type": "sqlite database",
+        "generated": true,
+        "purpose": "Experiment lineage and genealogy tracking",
+        "schema_from": "schema.sql"
+      },
+
+      "merged_models": {
+        "type": "directory",
+        "generated": true,
+        "purpose": "Cached merged model weights and configs"
+      },
+
+      "eval_results": {
+        "type": "directory",
+        "generated": true,
+        "purpose": "Evaluation outputs (benchmarks, scores)"
+      },
+
+      "sae_analysis": {
+        "type": "directory",
+        "generated": true,
+        "purpose": "SAE layer analysis results"
+      },
+
+      "experiments": {
+        "type": "directory",
+        "generated": true,
+        "purpose": "Dated experiment folders (YYYY-MM-DD_HHMMSS)",
+        "structure": {
+          "experiment.json": "Metadata - goal, status, best_score",
+          "merged_models/": "Generated models for this experiment",
+          "configs/": "Merge recipes (YAML)",
+          "logs/": "master.log - full timeline",
+          "results/": "benchmarks.json - scores per cycle"
+        }
+      },
+
+      ".gitkeep": {
+        "type": "directory marker",
+        "purpose": "Preserve empty directories in git"
+      }
+    },
+
+    "configs": {
+      "path": "breeding_vat/configs/",
+      "type": "generated at runtime",
+      "generated": true,
+      "purpose": "Merge configuration files (YAML)",
+      "examples": [
+        "mergekit_slerp.yaml",
+        "mergekit_ties.yaml",
+        "fusionbench_task_arithmetic.yaml"
+      ]
+    }
+  },
+
+  "docker": {
+    "path": "docker/",
+    "type": "container definitions",
+    "purpose": "Docker images for isolated components",
+
+    "Dockerfile.ui": {
+      "type": "docker image definition",
+      "builds_image": "breeding-vat-ui:latest",
+      "purpose": "Streamlit UI container",
+      "base": "python:3.11-slim",
+      "installs": ["streamlit", "torch", "transformers", "streamlit-option-menu"],
+      "mounts": ["/var/run/docker.sock", "/app"],
+      "ports": ["8501"],
+      "entrypoint": "streamlit run /app/breeding_vat/ui/app.py"
+    },
+
+    "Dockerfile.merge": {
+      "type": "docker image definition",
+      "builds_image": "breeding-vat-merge:latest",
+      "note": "This is the ACTUAL merge image (mergekit was old name)",
+      "purpose": "Model merging - MergeKit + FusionBench",
+      "base": "python:3.10-slim",
+      "installs": [
+        "torch",
+        "transformers",
+        "accelerate",
+        "mergekit",
+        "fusion-bench",
+        "hydra-core",
+        "lightning"
+      ],
+      "entrypoint": "mergekit-yaml"
+    },
+
+    "Dockerfile.mergekit": {
+      "type": "docker image definition",
+      "builds_image": "breeding-vat-mergekit:latest",
+      "note": "DEPRECATED - kept for compatibility, uses FusionCore not MergeKit",
+      "purpose": "Old merging image (being phased out)",
+      "base": "python:3.11-slim",
+      "installs": ["fusioncore", "torch", "transformers"],
+      "status": "Do not use - use Dockerfile.merge instead"
+    },
+
+    "Dockerfile.fusionbench": {
+      "type": "docker image definition",
+      "builds_image": "breeding-vat-fusionbench:latest",
+      "purpose": "FusionBench evaluation and analysis",
+      "base": "python:3.11-slim",
+      "installs": ["fusion-bench", "lm-eval", "torch", "transformers"]
+    },
+
+    "Dockerfile.eval": {
+      "type": "docker image definition",
+      "builds_image": "breeding-vat-eval:latest",
+      "purpose": "lm-eval harness - benchmark evaluation",
+      "base": "python:3.11-slim",
+      "installs": ["lm-eval-harness", "torch", "transformers"],
+      "benchmarks": ["hellaswag", "arc_challenge", "winogrande"]
+    },
+
+    "Dockerfile.sae": {
+      "type": "docker image definition",
+      "builds_image": "breeding-vat-sae:latest",
+      "purpose": "Sparse Autoencoder analysis",
+      "base": "python:3.11-slim",
+      "installs": ["transformer-lens", "einops", "torch"]
+    },
+
+    "build.sh": {
+      "type": "shell script",
+      "purpose": "Build all Docker images (Linux/Mac)"
+    },
+
+    "docker-compose.yml": {
+      "type": "compose configuration",
+      "purpose": "Multi-container orchestration (optional)"
+    }
+  },
+
+  "scripts": {
+    "path": "scripts/",
+    "purpose": "Utility scripts - Docker management, model download",
+
+    "manager.py": {
+      "type": "python script",
+      "size": "50+ KB",
+      "purpose": "Docker image/container management - core infrastructure",
+      "executable": true,
+      "entry_point": "Called by run.bat and setup.bat",
+      "commands": {
+        "run": "Start UI (reuse existing container if healthy)",
+        "rebuild": "Force rebuild all Docker images",
+        "verify": "Check environment and images",
+        "clean": "Stop and remove stopped containers",
+        "reset": "Full system reset"
+      },
+      "key_functions": [
+        "ensure_images() - verify/build Docker images",
+        "run_ui() - launch Streamlit container",
+        "image_exists() - check if Docker image present",
+        "rebuild_image() - docker build",
+        "is_container_healthy() - check container status"
+      ],
+      "images_managed": [
+        "breeding-vat-ui",
+        "breeding-vat-merge",
+        "breeding-vat-fusionbench",
+        "breeding-vat-eval",
+        "breeding-vat-sae"
+      ]
+    },
+
+    "download_models.py": {
+      "type": "python script",
+      "purpose": "Download base models from HuggingFace",
+      "models": [
+        "Qwen/Qwen2.5-0.5B-Instruct",
+        "Qwen/Qwen2.5-1.5B-Instruct",
+        "mistralai/Mistral-7B-Instruct-v0.3"
+      ],
+      "cache_dir": "~/.cache/huggingface/"
+    },
+
+    "sae_self_analysis.py": {
+      "type": "python script",
+      "purpose": "Standalone SAE analysis tool"
+    }
+  },
+
+  "docs": {
+    "path": "docs/",
+    "purpose": "Comprehensive documentation",
+
+    "guides": {
+      "path": "docs/guides/",
+      "purpose": "User-facing guides",
+
+      "ONE_CLICK_SETUP.md": {
+        "type": "documentation",
+        "audience": ["users", "new developers"],
+        "topics": ["Installation", "Setup workflow", "Troubleshooting"]
+      },
+
+      "UI_DESIGN.md": {
+        "type": "documentation",
+        "audience": ["users"],
+        "topics": ["UI features", "Design philosophy", "Interaction patterns"]
+      },
+
+      "QUICK_REFERENCE.md": {
+        "type": "documentation",
+        "audience": ["users", "developers"],
+        "topics": ["Common commands", "Troubleshooting", "FAQ"]
+      },
+
+      "STARTUP_GUIDE.md": {
+        "type": "documentation",
+        "audience": ["new users"],
+        "topics": ["Initial setup", "System requirements", "Verification"]
+      },
+
+      "FUSIONBENCH_QUICKSTART.md": {
+        "type": "documentation",
+        "recent": "NEW",
+        "audience": ["users"],
+        "topics": ["FusionBench methods", "Parameter tuning", "Examples"]
+      }
+    },
+
+    "reference": {
+      "path": "docs/reference/",
+      "purpose": "Technical reference documentation",
+
+      "ARCHITECTURE.md": {
+        "type": "documentation",
+        "audience": ["developers", "architects"],
+        "topics": ["System design", "Component relationships", "Execution flow"]
+      },
+
+      "REPO_MAP.md": {
+        "type": "documentation",
+        "audience": ["developers"],
+        "topics": ["Directory structure", "File locations"]
+      },
+
+      "DOCKER_GUIDE.md": {
+        "type": "documentation",
+        "audience": ["operators", "developers"],
+        "topics": ["Container architecture", "Image management", "Networking"]
+      },
+
+      "MERGING_ROADMAP.md": {
+        "type": "documentation",
+        "audience": ["developers"],
+        "topics": ["Available merge methods", "Future capabilities", "Implementation roadmap"]
+      },
+
+      "FUSIONBENCH_INTEGRATION.md": {
+        "type": "documentation",
+        "recent": "NEW",
+        "audience": ["developers"],
+        "topics": ["FusionBench API", "Method implementation", "Extension points"]
+      },
+
+      "SAE_GUIDE.md": {
+        "type": "documentation",
+        "audience": ["developers", "researchers"],
+        "topics": ["Sparse Autoencoder analysis", "Layer introspection"]
+      },
+
+      "MODEL_ZOO.md": {
+        "type": "documentation",
+        "audience": ["users", "developers"],
+        "topics": ["Available models", "Adding new models", "Model selection"]
+      }
+    },
+
+    "index.md": {
+      "type": "documentation navigation",
+      "purpose": "Central hub for all documentation"
+    }
+  },
+
+  "git_setup": {
+    "path": "root/",
+    "purpose": "Git configuration",
+
+    ".gitignore": {
+      "type": "git configuration",
+      "excludes": [
+        "*.db",
+        "*.bin",
+        "*.safetensors",
+        "__pycache__",
+        ".venv",
+        "breeding_vat/data/merged_models/",
+        "breeding_vat/data/experiments/",
+        "~/.cache/huggingface/"
+      ]
+    },
+
+    ".gitattributes": {
+      "type": "git configuration",
+      "purpose": "Line ending management"
+    },
+
+    ".gitkeep": {
+      "count": 6,
+      "purpose": "Preserve empty directories"
+    }
+  },
+
+  "summary": {
+    "total_python_modules": "50+",
+    "total_dockerfiles": 6,
+    "total_documentation_files": "20+",
+    "docker_images_built": 5,
+    "key_entry_points": [
+      "setup.bat - initial setup",
+      "run.bat - launch UI",
+      "breeding_vat/ui/app.py - Streamlit UI"
+    ],
+    "generated_at_runtime": [
+      "breeding_vat/data/breeding.db",
+      "breeding_vat/data/experiments/",
+      "breeding_vat/configs/",
+      "breeding_vat/data/merged_models/"
+    ]
+  }
+}

@@ -1,28 +1,44 @@
 @echo off
 setlocal enabledelayedexpansion
-echo [🧬 The Breeding Vat] Windows 11 One-Click Setup...
+
+title The Breeding Vat - Setup & Repair
+
+echo.
+echo  =====================================================================
+echo    The Breeding Vat [Setup / Repair Utility]
+echo  =====================================================================
+echo.
 
 :: 1. Check for Docker
+echo [*] Checking for Docker Desktop...
 docker --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [!] Docker Desktop not found.
-    echo Please install Docker Desktop from https://www.docker.com/products/docker-desktop/
-    echo Ensure "Expose daemon on tcp://localhost:2375 without TLS" is NOT needed,
-    echo but Docker must be running.
+    echo     Install from: https://www.docker.com/products/docker-desktop/
+    echo.
+    pause
+    exit /b 1
+)
+echo [OK] Docker is installed.
+echo.
+
+:: 2. Environment repair/setup
+echo [*] Repairing/verifying Docker images...
+echo     (Rebuilds missing images, cleans old containers)
+echo.
+python scripts/manager.py repair
+
+if %errorlevel% neq 0 (
+    echo.
+    echo [X] Repair failed. Check Docker daemon and disk space.
+    echo.
     pause
     exit /b 1
 )
 
-:: 2. Build All Containers
-echo [i] Building all containers (This will take a while, but keeps your host clean)...
-docker build -t vat-ui -f docker/Dockerfile.ui .
-docker build -t vat-merge -f docker/Dockerfile.merge .
-docker build -t vat-eval -f docker/Dockerfile.eval .
-docker build -t vat-sae -f docker/Dockerfile.sae .
-
-:: 3. Verify Setup
-python scripts/manager.py verify
-
 echo.
-echo [✓] Setup Process Complete!
+echo [OK] All images verified/rebuilt successfully!
+echo.
+echo Next: Run run.bat to start the Control Room
+echo.
 pause

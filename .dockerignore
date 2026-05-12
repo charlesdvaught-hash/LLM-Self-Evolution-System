@@ -1,0 +1,21 @@
+# Exclude large data folders except GGUFs
+breeding_vat/data/experiments/
+breeding_vat/data/merged_models/
+breeding_vat/data/eval_results/
+breeding_vat/data/sae_analysis/
+breeding_vat/data/model_zoo/
+
+# Keep GGUF models in image
+# breeding_vat/data/gguf/  <- DO NOT EXCLUDE
+
+.git/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+node_modules/
+.DS_Store
+*.log

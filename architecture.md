@@ -8,6 +8,7 @@ The Breeding Vat is an autonomous ecosystem for evolving Large Language Models (
 ### 1. The Orchestrator (`breeding_vat/orchestrator/`)
 - **Task Runner**: Manages the lifecycle of Docker containers. Each task (merge, train, eval) runs in a fresh container with dedicated dependencies.
 - **Database (SQLite)**: Tracks every model ever created, its recipe, parentage (lineage), and benchmark results.
+- **Merging Settings**: User-configurable toggles (Low CPU Memory, Copy Tokenizer, etc.) passed from UI to the evolution engine.
 
 ### 2. The Advisor (`breeding_vat/modules/merge/advisor.py`)
 - Uses **Qwen 3.5 0.8B** to act as a bridge between user goals and technical recipes.

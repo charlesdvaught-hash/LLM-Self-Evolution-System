@@ -1,0 +1,535 @@
+import yaml
+import os
+import json
+import logging
+import subprocess
+import shutil
+from typing import Dict, List, Optional, Any
+from pathlib import Path
+from breeding_vat.orchestrator.runner import TaskRunner
+
+logger = logging.getLogger("MergekitEngine")
+
+class MergekitConfigBuilder:
+    """Build Mergekit YAML configurations programmatically.
+
+    Mergekit CLI: mergekit-yaml <config.yaml> <output_dir> [flags]
+    Flags: --cuda  --lazy-unpickle  --copy-tokenizer  --allow-crimes
+
+    Config keys:
+      merge_method: slerp | ties | dare_linear | task_arithmetic | moe | linear
+      base_model:   HF ID or local path
+      models:       list of {model: <id>, parameters: {weight, density, ...}}
+      parameters:   global method params (t for slerp, density/weight for ties)
+      dtype:        float16 | bfloat16
+      tokenizer_source: base (always use base model tokenizer)
+    """
+
+    @staticmethod
+    def build_slerp_config(base_model: str, merge_models: List[str],
+                           weights: Optional[List[float]] = None) -> Dict:
+        """SLERP: spherical linear interpolation between two models.
+        'models' lists exactly the models to interpolate; 't' is the blend factor.
+        """
+        # SLERP works on exactly 2 models; take first merge model
+        merge_model = merge_models[0] if merge_models else base_model
+        t = weights[0] if weights else 0.5
+        return {
+            "merge_method": "slerp",
+            "base_model": base_model,
+            "models": [
+                {"model": base_model},
+                {"model": merge_model},
+            ],
+            "parameters": {"t": t},
+            "dtype": "float16",
+            "tokenizer_source": "base",
+        }
+
+    @staticmethod
+    def build_ties_config(base_model: str, merge_models: List[str],
+                          weights: Optional[List[float]] = None,
+                          threshold: float = 0.9) -> Dict:
+        """TIES: trim, elect, merge. density = fraction of params to keep."""
+        if weights is None:
+            weights = [1.0 / len(merge_models)] * len(merge_models)
+        models = []
+        for model, weight in zip(merge_models, weights):
+            models.append({
+                "model": model,
+                "parameters": {"weight": weight, "density": threshold},
+            })
+        return {
+            "merge_method": "ties",
+            "base_model": base_model,
+            "models": models,
+            "parameters": {"normalize": True},
+            "dtype": "float16",
+            "tokenizer_source": "base",
+        }
+
+    @staticmethod
+    def build_dare_config(base_model: str, merge_models: List[str],
+                          weights: Optional[List[float]] = None,
+                          drop_rate: float = 0.1) -> Dict:
+        """DARE: drop & rescale. density = 1 - drop_rate."""
+        if weights is None:
+            weights = [1.0 / len(merge_models)] * len(merge_models)
+        density = round(1.0 - drop_rate, 4)
+        models = []
+        for model, weight in zip(merge_models, weights):
+            models.append({
+                "model": model,
+                "parameters": {"weight": weight, "density": density},
+            })
+        return {
+            "merge_method": "dare_linear",
+            "base_model": base_model,
+            "models": models,
+            "parameters": {"normalize": True},
+            "dtype": "float16",
+            "tokenizer_source": "base",
+        }
+
+    @staticmethod
+    def build_task_arithmetic_config(base_model: str, merge_models: List[str],
+                                     weights: Optional[List[float]] = None) -> Dict:
+        """Task Arithmetic: base + weighted sum of task vectors."""
+        if weights is None:
+            weights = [1.0 / len(merge_models)] * len(merge_models)
+        models = []
+        for model, weight in zip(merge_models, weights):
+            models.append({
+                "model": model,
+                "parameters": {"weight": weight},
+            })
+        return {
+            "merge_method": "task_arithmetic",
+            "base_model": base_model,
+            "models": models,
+            "dtype": "float16",
+            "tokenizer_source": "base",
+        }
+
+    @staticmethod
+    def build_linear_config(base_model: str, merge_models: List[str],
+                            weights: Optional[List[float]] = None) -> Dict:
+        """Linear: weighted average of all models including base."""
+        n = len(merge_models) + 1
+        if weights is None:
+            weights = [1.0 / n] * len(merge_models)
+        base_weight = round(1.0 - sum(weights), 4)
+        models = [{"model": base_model, "parameters": {"weight": base_weight}}]
+        for model, weight in zip(merge_models, weights):
+            models.append({"model": model, "parameters": {"weight": weight}})
+        return {
+            "merge_method": "linear",
+            "models": models,
+            "dtype": "float16",
+            "tokenizer_source": "base",
+        }
+
+    @staticmethod
+    def build_moe_config(base_model: str, merge_models: List[str],
+                         num_experts: Optional[int] = None) -> Dict:
+        """Mixture-of-Experts: combine as expert routing."""
+        return {
+            "merge_method": "moe",
+            "base_model": base_model,
+            "models": [{"model": m} for m in merge_models],
+            "parameters": {
+                "num_experts": num_experts or len(merge_models),
+            },
+            "dtype": "float16",
+            "tokenizer_source": "base",
+        }
+
+    # ════════════════════════════════════════════════════════════════════════
+    # ADVANCED ORTHOGONAL TOGGLES — emit native MergeKit YAML.
+    # Routed here by recipe['advanced'] when the toggle maps to MergeKit knobs.
+    # See breeding_vat/modules/merge/advanced_toggles.py for the toggle list.
+    # ════════════════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def apply_layerwise_alpha(config: Dict, alpha_curve: List[float],
+                              total_layers: Optional[int] = None) -> Dict:
+        """
+        Insert a `slices:` block that scales every block with its own weight.
+
+        Args:
+            config: existing config dict (e.g. from build_slerp_config).
+            alpha_curve: per-layer alpha list. Use
+                advanced_toggles.layer_alpha_curve(...) to compute.
+            total_layers: model depth. If omitted, len(alpha_curve) is used.
+
+        Reference: MergeKit slices syntax —
+            https://github.com/arcee-ai/mergekit/blob/main/docs/merge_methods.md
+        """
+        n = total_layers or len(alpha_curve)
+        if n <= 0:
+            return config
+        slices = []
+        for i, a in enumerate(alpha_curve[:n]):
+            slices.append({
+                "sources": [{
+                    "model": config["base_model"],
+                    "layer_range": [i, i + 1],
+                    "parameters": {"weight": round(float(a), 6)},
+                }],
+            })
+        new_cfg = dict(config)
+        new_cfg["slices"] = slices
+        return new_cfg
+
+    @staticmethod
+    def apply_module_filters(config: Dict, *,
+                             merge_attention: bool = True,
+                             merge_mlp: bool = True,
+                             merge_norms: bool = True,
+                             merge_embeddings: bool = True) -> Dict:
+        """
+        Add MergeKit `filter:` selectors so the merge applies only to enabled
+        module classes. Disabled classes are zeroed via density=0.
+
+        MergeKit applies one filter per `parameters` entry, so we expand each
+        per-model block into category-tagged sub-entries.
+
+        Reference: filter docs —
+            https://github.com/arcee-ai/mergekit/blob/main/docs/merge_methods.md#filtering
+        """
+        new_cfg = dict(config)
+        category_state = {
+            "attention":  merge_attention,
+            "mlp":        merge_mlp,
+            "norm":       merge_norms,
+            "embedding":  merge_embeddings,
+        }
+        # MergeKit accepts a top-level `parameters.filter_critera` only in
+        # certain methods; the safer cross-method path is per-model `filter`.
+        for entry in new_cfg.get("models", []):
+            params = entry.setdefault("parameters", {})
+            params["filter"] = [
+                tok for cat, enabled in category_state.items()
+                if enabled
+                for tok in _FILTER_TOKENS.get(cat, ())
+            ]
+        return new_cfg
+
+    @staticmethod
+    def apply_density(config: Dict, density: float) -> Dict:
+        """
+        Set the `density` parameter on every per-model entry (TIES/DARE).
+        density = 1 - drop_rate. Lower density => sparser merge.
+        """
+        d = max(0.001, min(1.0, float(density)))
+        new_cfg = dict(config)
+        for entry in new_cfg.get("models", []):
+            params = entry.setdefault("parameters", {})
+            params["density"] = d
+        return new_cfg
+
+    @staticmethod
+    def apply_per_model_weights(config: Dict, weights: List[float]) -> Dict:
+        """
+        Overwrite per-model `weight:` with caller-computed values (e.g. from
+        bench_score_to_weights). Use when blending by benchmark score.
+        """
+        new_cfg = dict(config)
+        models = new_cfg.get("models", [])
+        if len(weights) != len(models):
+            logger.warning(
+                f"apply_per_model_weights: {len(weights)} weights vs "
+                f"{len(models)} models — skipping mismatched entries."
+            )
+        for entry, w in zip(models, weights):
+            params = entry.setdefault("parameters", {})
+            params["weight"] = round(float(w), 6)
+        return new_cfg
+
+    @staticmethod
+    def apply_tokenizer_mode(config: Dict, mode: str) -> Dict:
+        """
+        Embedding strategy via `tokenizer_source`.
+
+        Modes:
+            freeze   : tokenizer_source = base; filter blocks embed merging
+            partial  : tokenizer_source = base (default; embeddings still merge)
+            full     : tokenizer_source = union (rebuilds vocab union)
+            scaled   : tokenizer_source = base; lower weight on embed tokens
+        """
+        new_cfg = dict(config)
+        if mode == "freeze":
+            new_cfg["tokenizer_source"] = "base"
+            for entry in new_cfg.get("models", []):
+                params = entry.setdefault("parameters", {})
+                existing = params.setdefault("filter", [])
+                if "embed_tokens" not in existing:
+                    existing.append("!embed_tokens")
+        elif mode == "full":
+            new_cfg["tokenizer_source"] = "union"
+        elif mode == "scaled":
+            new_cfg["tokenizer_source"] = "base"
+            # Caller is responsible for setting reduced weight via slices on
+            # embed_tokens; left as a hint in metadata.
+            new_cfg.setdefault("metadata", {})["embedding_scaled"] = True
+        else:  # "partial" (default)
+            new_cfg["tokenizer_source"] = "base"
+        return new_cfg
+
+    @staticmethod
+    def build_passthrough_slices(model_a: str, model_b: str, *,
+                                 total_layers: int,
+                                 pattern: str = "odd_even") -> Dict:
+        """
+        Frankenmerge-style alternate layer injection via MergeKit `passthrough`.
+
+        Patterns:
+            odd_even    : even layers from A, odd from B
+            even_odd    : even from B, odd from A
+            first_half  : layers < N/2 from A, rest from B
+            second_half : inverse of first_half
+
+        Reference: passthrough method —
+            https://github.com/arcee-ai/mergekit/blob/main/docs/merge_methods.md#passthrough
+        """
+        slices = []
+        for i in range(total_layers):
+            if pattern == "odd_even":
+                src = model_a if i % 2 == 0 else model_b
+            elif pattern == "even_odd":
+                src = model_b if i % 2 == 0 else model_a
+            elif pattern == "first_half":
+                src = model_a if i < total_layers // 2 else model_b
+            elif pattern == "second_half":
+                src = model_b if i < total_layers // 2 else model_a
+            else:
+                src = model_a
+            slices.append({
+                "sources": [{
+                    "model": src,
+                    "layer_range": [i, i + 1],
+                }],
+            })
+        return {
+            "merge_method": "passthrough",
+            "slices": slices,
+            "dtype": "float16",
+            "tokenizer_source": "base",
+        }
+
+
+# Imported by apply_module_filters; mirrors advanced_toggles.FILTER_TOKENS.
+_FILTER_TOKENS: Dict[str, tuple] = {
+    "attention":  ("q_proj", "k_proj", "v_proj", "o_proj", "self_attn"),
+    "mlp":        ("gate_proj", "up_proj", "down_proj", "mlp"),
+    "norm":       ("input_layernorm", "post_attention_layernorm",
+                   "norm", "rmsnorm"),
+    "embedding":  ("embed_tokens", "lm_head"),
+}
+
+
+class MergekitEngine:
+    """
+    Orchestrate model merging via Mergekit in a Docker container.
+    Keeps all dependencies isolated and avoids dependency hell.
+    """
+
+    def __init__(self, runner: TaskRunner, output_dir="breeding_vat/data/merged_models",
+                 image_name="breeding-vat-merge:latest"):
+        self.runner = runner
+        self.output_dir = output_dir
+        self.image_name = image_name
+        self.config_builder = MergekitConfigBuilder()
+        # Optional hook: callable(config_dict, method, base, models) -> dict.
+        # Used by EvolutionEngine to fold in recipe['advanced'] toggles
+        # (slices, filter, density, tokenizer_source, per-model weight, …).
+        self.config_hook = None
+        os.makedirs(output_dir, exist_ok=True)
+        logger.info(f"MergekitEngine initialized (image: {image_name})")
+
+    def create_config(self, method: str, base_model: str, merge_models: List[str],
+                     params: Optional[Dict] = None) -> str:
+        """
+        Create a Mergekit config file.
+
+        Args:
+            method: Merge method (slerp, ties, dare, task_arithmetic, moe, etc)
+            base_model: Base model path/ID
+            merge_models: List of models to merge
+            params: Method-specific parameters
+
+        Returns:
+            Path to generated config file
+        """
+        params = params or {}
+
+        logger.info(f"Building {method} config for {base_model}")
+
+        # Build config based on method
+        if method.lower() == "slerp":
+            config = self.config_builder.build_slerp_config(
+                base_model, merge_models, params.get("weights")
+            )
+        elif method.lower() == "ties":
+            config = self.config_builder.build_ties_config(
+                base_model, merge_models, params.get("weights"),
+                params.get("threshold", 0.9)
+            )
+        elif method.lower() == "dare":
+            config = self.config_builder.build_dare_config(
+                base_model, merge_models, params.get("weights"),
+                params.get("drop_rate", 0.1)
+            )
+        elif method.lower() == "task_arithmetic":
+            config = self.config_builder.build_task_arithmetic_config(
+                base_model, merge_models, params.get("weights")
+            )
+        elif method.lower() == "linear":
+            config = self.config_builder.build_linear_config(
+                base_model, merge_models, params.get("weights")
+            )
+        elif method.lower() == "moe":
+            config = self.config_builder.build_moe_config(
+                base_model, merge_models, params.get("num_experts")
+            )
+        else:
+            raise ValueError(f"Unsupported merge method: {method}")
+
+        # Apply optional advanced-toggle hook (folds in slices/filter/density/etc.)
+        if callable(self.config_hook):
+            try:
+                config = self.config_hook(config, method, base_model, merge_models) or config
+            except Exception as e:
+                logger.warning(f"config_hook failed for {method}: {e}")
+
+        # Save config
+        config_path = os.path.join("breeding_vat/configs", f"mergekit_{method}.yaml")
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+
+        with open(config_path, 'w') as f:
+            yaml.dump(config, f)
+
+        logger.info(f"Config saved: {config_path}")
+        return config_path
+
+    def run_merge(self, config_path: str, output_name: str,
+                 chat_template: Optional[str] = None) -> Optional[str]:
+        """
+        Execute merge via Mergekit in container.
+
+        Args:
+            config_path: Path to merge config (relative to project root)
+            output_name: Output model directory name
+            chat_template: Optional chat template for tokenizer
+
+        Returns:
+            Output path if successful, None otherwise
+        """
+        try:
+            # Ensure image exists
+            if not self._image_exists():
+                logger.error(f"Image {self.image_name} not found")
+                raise RuntimeError(f"Build image with: docker build -f docker/Dockerfile.merge -t {self.image_name} .")
+
+            # Prepare volumes
+            volumes = {
+                "breeding_vat/configs": "/app/configs",
+                "breeding_vat/data": "/app/data",
+                "~/.cache/huggingface": "/root/.cache/huggingface"  # Model cache
+            }
+
+            # Mergekit command
+            config_filename = os.path.basename(config_path)
+            container_config = f"/app/configs/{config_filename}"
+            container_output = f"/app/data/merged_models/{output_name}"
+
+            command = [
+                "mergekit-yaml",
+                container_config,
+                container_output,
+                "--cuda",
+                "--copy-tokenizer",
+                "--lazy-unpickle",
+            ]
+
+            logger.info(f"Running merge: {' '.join(command)}")
+            logger.info(f"Output: {container_output}")
+
+            # Execute in container
+            self.runner.run_docker_task(
+                self.image_name,
+                command,
+                volumes=volumes,
+                gpus="all"
+            )
+
+            output_path = f"breeding_vat/data/merged_models/{output_name}"
+
+            # Verify output
+            if os.path.exists(output_path):
+                logger.info(f"Merge successful: {output_path}")
+                return output_path
+            else:
+                logger.error(f"Output not found: {output_path}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Merge failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    def run_moe_merge(self, models: List[str], output_name: str,
+                     num_experts: Optional[int] = None,
+                     router_weights: Optional[List[float]] = None) -> Optional[str]:
+        """
+        Run Mixture-of-Experts merge.
+
+        Args:
+            models: List of model paths/IDs
+            output_name: Output model name
+            num_experts: Number of experts (defaults to len(models))
+            router_weights: Expert routing weights
+
+        Returns:
+            Output path if successful
+        """
+        if len(models) < 2:
+            raise ValueError("MOE merge requires at least 2 models")
+
+        config_path = self.create_config(
+            "moe",
+            models[0],
+            models[1:],
+            {"num_experts": num_experts or len(models)}
+        )
+
+        return self.run_merge(config_path, output_name)
+
+    def _image_exists(self) -> bool:
+        """Check if Mergekit Docker image exists."""
+        result = subprocess.run(
+            ["docker", "images", "-q", self.image_name],
+            capture_output=True,
+            text=True
+        )
+        return bool(result.stdout.strip())
+
+
+class MergekitWrapper:
+    """
+    Backward compatibility wrapper for existing code.
+    Delegates to MergekitEngine.
+    """
+
+    def __init__(self, runner: TaskRunner, output_dir="breeding_vat/data/merged_models"):
+        self.engine = MergekitEngine(runner, output_dir)
+
+    def create_config(self, method: str, base_model: str, merge_models: List[str],
+                     params: Optional[Dict] = None) -> str:
+        """Create merge config."""
+        return self.engine.create_config(method, base_model, merge_models, params)
+
+    def run_merge(self, config_path: str, output_name: str) -> Optional[str]:
+        """Run merge via Mergekit."""
+        return self.engine.run_merge(config_path, output_name)

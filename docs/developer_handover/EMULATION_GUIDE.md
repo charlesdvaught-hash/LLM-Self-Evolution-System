@@ -41,3 +41,11 @@ A known issue exists where MergeKit's Pydantic models with `ForwardRef` fail in 
 Local models are linked via `os.symlink` when `use_symlink=True`.
 - **Emulation Logic**: Metadata is stored in a sidecar file `. <name>_metadata.json` in the zoo directory.
 - **Potential Flaw**: Docker containers might not follow host symlinks unless the target path is also mounted as a volume. The `TaskRunner` logic converts `rel_path` to `abs_host_path`, but if a symlink points *outside* the project root, the worker container will see a broken link.
+
+## 5. MergeKit Compatibility Wrapper (`scripts/mergekit_wrapper.py`)
+
+The `vat-merge` Docker container now uses a specialized entrypoint script instead of calling `mergekit-yaml` directly.
+
+- **Reason**: Certain Python 3.10+ environments fail with `PydanticUserError` when MergeKit's internal models with `ForwardRefs` are initialized.
+- **Solution**: The wrapper explicitly calls `model_rebuild()` on critical MergeKit classes (`ConfiguredModuleArchitecture`, `ConfiguredModelArchitecture`) within the `torch` namespace before starting the merge.
+- **Simulation Impact**: This wrapper is also mounted into the simulated runner environment to ensure any local functional tests also benefit from the fix.

@@ -77,6 +77,10 @@ class EvolutionWithLogging:
             
             self._emit_progress(0, num_cycles, "Initializing evolution...")
             
+            # NEW: Inject experiment manager into evolution engine for genealogy tracking
+            self.evolution._experiment_manager = self.exp_manager
+            self.evolution._current_experiment = self.experiment
+            
             # Call the underlying evolution engine
             best_model = self.evolution.run_waterfall(
                 base_models=base_models,

@@ -21,7 +21,7 @@ class AdvancedMerger:
     def __init__(self, runner: TaskRunner = None):
         self.runner = runner
         self.mergekit = MergeKitWrapper(runner) if runner else None
-        self.fusionbench = FusionBenchEngine()
+        self.fusionbench = FusionBenchEngine(runner=runner)
         logger.info("AdvancedMerger initialized with Mergekit + FusionBench backends")
     
     def dare_merge(self, base_model: str, models: List[str], 

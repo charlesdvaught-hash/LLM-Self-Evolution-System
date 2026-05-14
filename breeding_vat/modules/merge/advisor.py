@@ -1,8 +1,10 @@
+import os
 import torch
 import logging
 import json
 from typing import List, Dict, Optional, Tuple
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from breeding_vat.modules.merge.recipe_validator import RecipeValidator, ValidationError
 
 logger = logging.getLogger("MergeAdvisor")
 
@@ -131,23 +133,46 @@ class MergeAdvisor:
         self.historical_db = historical_db  # Optional: ExperimentDatabase for predictions
         self.recipe_generator = RecipeGenerator()
     
+    def _is_gguf(self) -> bool:
+        """True if model_id points to a .gguf file."""
+        return str(self.model_id).lower().endswith(".gguf")
+
     def load(self):
-        """Lazy-load the LLM."""
-        if self.model is None:
-            logger.info(f"Loading advisor model: {self.model_id}")
+        """Lazy-load the LLM. Supports HF safetensors and local GGUF."""
+        if self.model is not None:
+            return
+        logger.info(f"Loading advisor model: {self.model_id}")
+        if self._is_gguf():
+            try:
+                from llama_cpp import Llama
+                self.model = Llama(
+                    model_path=self.model_id,
+                    n_ctx=2048,
+                    n_gpu_layers=-1,   # offload all layers to GPU if available
+                    verbose=False,
+                )
+                self.tokenizer = None  # not used for GGUF path
+            except ImportError:
+                logger.error(
+                    "llama-cpp-python not installed — cannot load GGUF advisor. "
+                    "Add 'llama-cpp-python' to Dockerfile.ui requirements."
+                )
+                raise
+        else:
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_id,
                 torch_dtype="auto",
-                device_map="auto"
+                device_map="auto",
             )
     
     def generate_recipes(self, goal: str, base_models: List[str],
-                        methods: List[str], 
+                        methods: List[str],
                         num_variants_per_method: int = 2,
                         enable_sae: bool = False,
                         enable_cwp: bool = False,
-                        user_recipe_draft: Optional[str] = None) -> Dict:
+                        user_recipe_draft: Optional[str] = None,
+                        use_laser_rag: bool = False) -> Dict:
         """
         Generate merge recipe options for user.
         
@@ -164,16 +189,17 @@ class MergeAdvisor:
             Dict with recipe options and advisor commentary
         """
         self.load()
-        
+
         logger.info(f"Generating recipes for goal: {goal}")
         logger.info(f"Methods: {methods}")
-        
+
+        validator = RecipeValidator()
         recipes = []
-        
+
         # Generate variants for each method
         for method in methods:
             logger.info(f"Generating {num_variants_per_method} variants for {method}")
-            
+
             # Use RecipeGenerator for parameter variants
             variants = self.recipe_generator.generate_variants(
                 method=method,
@@ -181,16 +207,21 @@ class MergeAdvisor:
                 num_models=len(base_models),
                 historical_params=self._get_best_params(method, goal) if self.historical_db else None
             )
-            
-            # Enhance each variant with LLM reasoning
+
+            # Enhance each variant with LLM reasoning, then validate before accepting
             for variant in variants:
                 enhanced = self._enhance_recipe(
                     variant, goal, base_models, enable_sae, enable_cwp
                 )
+                ok, reason = validator.check(enhanced)
+                if not ok:
+                    logger.warning(f"Recipe failed validation ({method}): {reason} — skipped")
+                    enhanced["_validation_error"] = reason
                 recipes.append(enhanced)
         
         # Generate overall advisor commentary
-        commentary = self._generate_commentary(goal, base_models, methods, recipes)
+        commentary = self._generate_commentary(goal, base_models, methods, recipes,
+                                               use_laser_rag=use_laser_rag)
         
         result = {
             "goal": goal,
@@ -257,51 +288,109 @@ class MergeAdvisor:
         
         return None
     
+    def _load_kb_context(self, use_laser: bool = False, query: str = "") -> str:
+        """
+        Load KB context for prompt injection.
+        Uses LaSER semantic retrieval when use_laser=True and index exists,
+        otherwise falls back to loading the first ~800 chars of key guide files.
+        """
+        if use_laser and query:
+            try:
+                from breeding_vat.modules.sae.laser_retriever import LaSERRetriever
+                retriever = LaSERRetriever()
+                chunks = retriever.retrieve(query, top_k=3)
+                if chunks:
+                    return "\n\n---\n\n".join(chunks)
+            except Exception as e:
+                logger.debug(f"LaSER retrieval failed, falling back to file load: {e}")
+
+        kb_files = [
+            "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+            "docs/reference/MERGING_METHODS_INVENTORY.md",
+        ]
+        snippet = ""
+        per_file = 800
+        for path in kb_files:
+            if os.path.exists(path):
+                try:
+                    text = open(path, encoding="utf-8").read()
+                    snippet += text[:per_file] + "\n\n---\n\n"
+                except Exception:
+                    pass
+        return snippet.strip() or "No KB context available."
+
     def _generate_commentary(self, goal: str, base_models: List[str],
-                            methods: List[str], recipes: List[Dict]) -> str:
+                            methods: List[str], recipes: List[Dict],
+                            use_laser_rag: bool = False) -> str:
         """
-        Generate encouraging commentary for the user.
+        Generate AI advisor commentary using the loaded LLM with KB context.
         """
-        commentary = f"""
-**Breeding Vat Advisor Commentary**
+        kb_context = self._load_kb_context(use_laser=use_laser_rag, query=goal)
+        models_str = ", ".join(m.split("/")[-1] for m in base_models)
+        methods_str = ", ".join(methods)
+        num_recipes = len(recipes)
 
-Goal: {goal}
-Base Models: {", ".join([m.split('/')[-1] for m in base_models])}
-Methods to Explore: {", ".join(methods)}
-Total Recipe Variants: {len(recipes)}
+        prompt = (
+            f"You are an expert model merging advisor for The Breeding Vat system.\n\n"
+            f"Knowledge Base:\n{kb_context}\n\n"
+            f"Task: Give specific, actionable merge recommendations.\n\n"
+            f"Goal: {goal}\n"
+            f"Models: {models_str}\n"
+            f"Methods: {methods_str}\n"
+            f"Recipe variants prepared: {num_recipes}\n\n"
+            f"Provide: (1) best method for this goal, (2) key parameter tips, "
+            f"(3) what to watch in evaluation.\n\nAdvisor:"
+        )
 
-**Recommended Approach:**
-I've generated {len(recipes)} recipe variants across {len(methods)} methods. 
-Each variant represents a different set of hyperparameters.
-
-**What's Next:**
-1. Review the recipes below
-2. Feel free to customize any parameters
-3. Or let me run all variants in parallel - the best will emerge through evolution
-4. I'll track results and learn from this experiment
-
-**Tips:**
-- Each method has trade-offs: TIES is conservative, DARE drops weights, MOE is experimental
-- Run all variants in parallel for faster discovery
-- I'll compare each result to your goal + baseline
-- Records are saved with full provenance for future learning
-"""
-        return commentary
+        try:
+            if self._is_gguf():
+                # llama-cpp-python path
+                response = self.model.create_chat_completion(
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=250,
+                    temperature=0.7,
+                )
+                generated = response["choices"][0]["message"]["content"].strip()
+            else:
+                # transformers path
+                inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
+                with torch.no_grad():
+                    out_ids = self.model.generate(
+                        **inputs,
+                        max_new_tokens=250,
+                        temperature=0.7,
+                        do_sample=True,
+                        pad_token_id=self.tokenizer.eos_token_id,
+                    )
+                generated = self.tokenizer.decode(
+                    out_ids[0][inputs["input_ids"].shape[1]:],
+                    skip_special_tokens=True,
+                ).strip()
+            return f"**Breeding Vat Advisor**\n\n{generated}"
+        except Exception as e:
+            logger.warning(f"LLM commentary generation failed: {e}")
+            return (
+                f"**Breeding Vat Advisor**\n\n"
+                f"Goal: {goal} | Models: {models_str} | Methods: {methods_str}\n"
+                f"Generated {num_recipes} recipe variants. Review and customize before running."
+            )
     
-    def generate_recipe(self, goal: str, available_models: List[str], 
-                       available_methods: List[str]) -> str:
+    def generate_recipe(self, goal: str, available_models: List[str],
+                       available_methods: List[str],
+                       use_laser_rag: bool = False) -> str:
         """
         Backward-compatible method for simple recipe generation.
         (Called by existing UI code)
         """
         self.load()
-        
+
         # Use new engine
         recipe_options = self.generate_recipes(
             goal=goal,
             base_models=available_models,
             methods=available_methods,
-            num_variants_per_method=2
+            num_variants_per_method=2,
+            use_laser_rag=use_laser_rag,
         )
         
         # Format as text for display

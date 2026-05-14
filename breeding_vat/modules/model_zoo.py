@@ -151,6 +151,7 @@ class GlobalModelZoo:
         if include_hf:
             hf_models = [
                 {"display_name": "Qwen 0.5B", "name": "Qwen/Qwen2.5-0.5B-Instruct", "type": "instruction", "source_type": "huggingface", "tags": ["0.5B", "instruction"]},
+                {"display_name": "Qwen-AI-Research-QA 3B", "name": "Qwen-AI-Research-QA-3B", "type": "assistant", "source_type": "local", "tags": ["3B", "qa", "assistant", "quantized"]},
                 {"display_name": "Qwen 1.5B", "name": "Qwen/Qwen2.5-1.5B-Instruct", "type": "reasoning", "source_type": "huggingface", "tags": ["1.5B", "reasoning"]},
                 {"display_name": "Qwen 3B", "name": "Qwen/Qwen2.5-3B-Instruct", "type": "reasoning", "source_type": "huggingface", "tags": ["3B", "reasoning"]},
                 {"display_name": "Qwen 7B", "name": "Qwen/Qwen2.5-7B-Instruct", "type": "reasoning", "source_type": "huggingface", "tags": ["7B", "reasoning"]},
@@ -219,6 +220,7 @@ class GlobalModelZoo:
             "Qwen/Qwen2.5-1.5B-Instruct": "Qwen 1.5B",
             "Qwen/Qwen2.5-3B-Instruct": "Qwen 3B",
             "Qwen/Qwen2.5-7B-Instruct": "Qwen 7B",
+            "Qwen-AI-Research-QA-3B": "Qwen-AI-Research-QA 3B",
             "mistralai/Mistral-7B-Instruct-v0.3": "Mistral 7B",
             "meta-llama/Llama-2-3b-chat": "Llama 3B",
             "meta-llama/Llama-2-3b-long": "Llama 3B Long",

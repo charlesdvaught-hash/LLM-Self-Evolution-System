@@ -1,0 +1,549 @@
+{
+  "dataset_name": "evo_merge_assistant_unsloth",
+  "description": "Specialized dataset for AI assistants in evolutionary LLM merging platforms. Focus: Merge prediction, Unsloth fine-tuning, and small-model optimization.",
+  "core_domains": [
+    "Evolutionary Merge Optimization",
+    "Unsloth Fine-Tuning",
+    "Merge Performance Prediction",
+    "Small-Model Enhancement"
+  ],
+  "knowledge_components": {
+    "evolutionary_search": {
+      "methods": ["CMA-ES", "Parameter Space Exploration", "Fitness Evaluation"],
+      "use_cases": ["Layer coefficient optimization", "Architecture discovery", "Hyperparameter tuning"]
+    },
+    "merging_techniques": {
+      "primary": ["TIES", "DARE", "Task Arithmetic"],
+      "advanced": ["SLERP", "Sparse Merging", "Activation-Guided Merging"]
+    },
+    "unsloth_integration": {
+      "features": ["QLoRA", "Flash Attention", "Memory Optimization"],
+      "merging_synergy": ["Orthogonal Fine-Tuning", "Merge-Friendly Training", "Gradient Preservation"]
+    },
+    "small_model_optimization": {
+      "strategies": ["Knowledge Distillation", "Pruning-Aware Merging", "3H Alignment"],
+      "scaling_laws": ["Expert Count vs Performance", "Base Model Selection", "Diminishing Returns"]
+    }
+  },
+  "training_pairs": [
+    // Evolutionary Search Focus
+    {
+      "id": "evo-1",
+      "from": "human",
+      "value": "How would you set up CMA-ES to evolve merge coefficients for a 3B multilingual model?",
+      "domain": "evolutionary_search"
+    },
+    {
+      "from": "gpt",
+      "value": "Define parameter space: coefficient range [0.1-1.0] per expert. Fitness function: weighted average of multilingual benchmarks. Population size=16, generations=50. Use MergeKit's API for batch merging.",
+      "token_count": 38
+    },
+    
+    // Unsloth Integration
+    {
+      "id": "unsloth-3",
+      "from": "human",
+      "value": "Best Unsloth config for fine-tuning models before evolutionary merging?",
+      "domain": "unsloth_integration"
+    },
+    {
+      "from": "gpt",
+      "value": "Use QLoRA (r=64, lora_alpha=32) with orthogonal init. Enable flash attention. Train with 4-bit quantization. Prioritize gradient preservation layers.",
+      "token_count": 24
+    },
+    
+    // Merge Prediction
+    {
+      "id": "predict-5",
+      "from": "human",
+      "value": "Predict performance when merging math and code specialists on Gemma-2-3B",
+      "domain": "merge_prediction"
+    },
+    {
+      "from": "gpt",
+      "value": "Expected: ~92% math retention, +15% coding gain. Risk: 8% general knowledge drop. Use DARE-TIES with 0.7 drop rate to minimize interference.",
+      "token_count": 28
+    },
+    
+    // Small-Model Optimization
+    {
+      "id": "small-7",
+      "from": "human",
+      "value": "Make 3B model outperform larger models via merging",
+      "domain": "small_model_optimization"
+    },
+    {
+      "from": "gpt",
+      "value": "Combine: 1) Evolutionary layer selection 2) Unsloth-optimized specialists 3) Sparse merging (DARE 0.8) 4) Post-merge knowledge distillation. Targets: beat 7B baselines on domain tasks.",
+      "token_count": 35
+    }
+  ],
+  "evaluation_benchmarks": [
+    {
+      "name": "MergeEvo",
+      "metrics": ["Coefficient Optimization Speed", "Post-Merge Performance Gain", "Forgetting Rate"]
+    },
+    {
+      "name": "TinyBench",
+      "metrics": ["3B vs 7B Comparison", "Multitask Efficiency", "Inference Latency"]
+    }
+  ]
+}
+    // Evolutionary Architecture Discovery
+    {
+      "id": "evo-8",
+      "from": "human",
+      "value": "How to evolve layer combinations during merging using CMA-ES?",
+      "domain": "evolutionary_search"
+    },
+    {
+      "from": "gpt",
+      "value": "Define layer subsets as genes. Fitness: validation loss on target tasks. Mutate layer selections across 50+ generations. MergeKit supports layer-wise coefficient evolution.",
+      "token_count": 27
+    },
+
+    // Unsloth-Merge Synergy
+    {
+      "id": "unsloth-12",
+      "from": "human",
+      "value": "QLoRA settings to maximize merge compatibility in Unsloth?",
+      "domain": "unsloth_integration"
+    },
+    {
+      "from": "gpt",
+      "value": "r=64, alpha=32, dropout=0.05. Use orthogonal initialization. Disable bias terms. Prioritize attention layers for LoRA injection.",
+      "token_count": 20
+    },
+
+    // Conflict Prediction
+    {
+      "id": "predict-15",
+      "from": "human",
+      "value": "Predict sign conflict risk when merging 5 experts on Mistral-3B",
+      "domain": "merge_prediction"
+    },
+    {
+      "from": "gpt",
+      "value": "High risk (>40%) in MLP layers. Apply TIES with sparsity=0.4 preemptively. Monitor transformer.blocks.2-8 outputs.",
+      "token_count": 24
+    },
+
+    // Small-Model Enhancement
+    {
+      "id": "small-22",
+      "from": "human",
+      "value": "Evolutionary strategy to make 3B model beat 7B in coding tasks",
+      "domain": "small_model_optimization"
+    },
+    {
+      "from": "gpt",
+      "value": "1) Evolve CodeLlama + WizardCoder merge coefficients 2) Layer-wise sparsity optimization 3) Post-merge Unsloth fine-tune on HumanEval subset",
+      "token_count": 26
+    },
+
+    // Fitness Function Design
+    {
+      "id": "evo-30",
+      "from": "human",
+      "value": "Optimal fitness function for evolutionary merge search?",
+      "domain": "evolutionary_search"
+    },
+    {
+      "from": "gpt",
+      "value": "Weighted sum: 60% target task score + 30% general knowledge retention + 10% inference speed. Penalize >15% forgetting.",
+      "token_count": 23
+    },
+
+    // Unsloth Quantization
+    {
+      "id": "unsloth-25",
+      "from": "human",
+      "value": "4-bit vs 8-bit Unsloth fine-tuning for merge-ready models?",
+      "domain": "unsloth_integration"
+    },
+    {
+      "from": "gpt",
+      "value": "4-bit for >20% VRAM savings. Use 8-bit only if seeing >5% merge quality drop. Always enable NF4 quantization.",
+      "token_count": 23
+    }
+  ],
+  "anti_patterns": [
+    {
+      "id": "ap-1",
+      "description": "Over-aggressive evolutionary pruning in small models",
+      "example_query": "Why did CMA-ES remove 90% of attention layers?",
+      "correction": "Limit pruning to <40% in 3B models. Use layer importance scoring first."
+    },
+    {
+      "id": "ap-3",
+      "description": "Mismatched Unsloth and merge configurations",
+      "example_query": "QLoRA merge causing parameter conflicts",
+      "correction": "Align LoRA ranks across models pre-merge. Freeze non-LoRA layers during fine-tuning."
+    }
+  ]
+}
+{
+  "dataset_name": "evo_merge_assistant_unsloth_pro",
+  "description": "Comprehensive toolkit for evolutionary LLM merging with Unsloth integration. Covers fine-tuning, 1000+ merging variants, and practical workflows.",
+  "toolkit_sections": [
+    {
+      "section": "Unsloth Fine-Tuning Mastery",
+      "pairs": [
+        {
+          "from": "human",
+          "value": "Optimal Unsloth config for merge-friendly fine-tuning?"
+        },
+        {
+          "from": "gpt",
+          "value": "Use: r=64, alpha=32, dropout=0.1, lr=2e-5. Enable flash_attention=True. Freeze embeddings. Train 3 epochs max. Orthogonal init prevents merge conflicts.",
+          "token_count": 28
+        },
+        {
+          "from": "human",
+          "value": "How to structure data for merge-ready specialists?"
+        },
+        {
+          "from": "gpt",
+          "value": "Domain-focused chunks (e.g., 10k code samples). Include 15% base knowledge retention prompts. Format: Alpaca style. Balance task diversity.",
+          "token_count": 25
+        }
+      ]
+    },
+    {
+      "section": "Advanced Merging Techniques",
+      "subsections": [
+        {
+          "name": "Probability-Based Merging",
+          "pairs": [
+            {
+              "from": "human",
+              "value": "Top-p vs top-k merging for expert selection?"
+            },
+            {
+              "from": "gpt",
+              "value": "Top-p (nucleus): Merge experts above probability threshold (e.g., p=0.9). Better for diverse domains. Top-k: Fixed expert count (k=3-5). Use for predictable resource usage.",
+              "token_count": 32
+            },
+            {
+              "from": "human",
+              "value": "Implement top-p merging in MergeKit?"
+            },
+            {
+              "from": "gpt",
+              "value": "In YAML: method: 'top_p', threshold: 0.85. Requires activation monitoring plugin. Prioritize layers with high variance.",
+              "token_count": 22
+            }
+          ]
+        },
+        {
+          "name": "Evolutionary Frankenmerging",
+          "pairs": [
+            {
+              "from": "human",
+              "value": "How to evolve layer combinations across models?"
+            },
+            {
+              "from": "gpt",
+              "value": "Define layer groups as genes. CMA-ES fitness: target task accuracy. Mutate: swap attention/MLP blocks between experts. MergeKit supports Frankenstein mode.",
+              "token_count": 26
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "section": "Practical Workflow Tools",
+      "pairs": [
+        {
+          "from": "human",
+          "value": "CLI command for evolutionary merge search"
+        },
+        {
+          "from": "gpt",
+          "value": "mergkit evolve --base llama3-3B --experts coder math multilingual --method dare_ties --gens 100 --pop_size 20 --fitness \"0.6*math+0.3*code+0.1*general\"",
+          "token_count": 30
+        },
+        {
+          "from": "human",
+          "value": "Real-time merge conflict detector setup"
+        },
+        {
+          "from": "gpt",
+          "value": "Use MergeKit's conflict_monitor: threshold=0.4. Flags sign disagreements >40% in FFN layers. Auto-applies TIES resolution.",
+          "token_count": 22
+        }
+      ]
+    },
+    {
+      "section": "Performance Optimization",
+      "pairs": [
+        {
+          "from": "human",
+          "value": "Reduce VRAM during evolutionary merging"
+        },
+        {
+          "from": "gpt",
+          "value": "1) 4-bit expert loading 2) Layer-wise merging 3) Offload to CPU between gens 4) Sparse evaluation (10% benchmark subset)",
+          "token_count": 22
+        },
+        {
+          "from": "human",
+          "value": "Predict merge quality without full eval"
+        },
+        {
+          "from": "gpt",
+          "value": "Formula: Q = (Base_score) + Σ(w_i * Δ_i) - 0.2*conflict_index. Δ_i = specialist gain. Conflict_index = layer variance.",
+          "token_count": 26
+        }
+      ]
+    },
+    {
+      "section": "Troubleshooting",
+      "pairs": [
+        {
+          "from": "human",
+          "value": "Fixing catastrophic forgetting post-merge"
+        },
+        {
+          "from": "gpt",
+          "value": "1) Add 15% base knowledge prompts 2) Reduce DARE drop to 0.6 3) Evolutionary knowledge retention penalty 4) Light SFT touch-up",
+          "token_count": 26
+        },
+        {
+          "from": "human",
+          "value": "When merging fails: diagnostic steps"
+        },
+        {
+          "from": "gpt",
+          "value": "1) Check base compatibility 2) Layer norm alignment 3) Conflict heatmap scan 4) Reduce expert count 5) Test with Task Arithmetic baseline",
+          "token_count": 26
+        }
+      ]
+    }
+  ],
+  "quick_reference": {
+    "merging_methods": [
+      {"name": "TIES", "use_case": "Sign conflicts", "params": "sparsity=0.3-0.5"},
+      {"name": "DARE", "use_case": "Noisy experts", "params": "drop_rate=0.7-0.9"},
+      {"name": "Top-p", "use_case": "Activation-based", "params": "threshold=0.8-0.95"},
+      {"name": "Frankenmerging", "use_case": "Layer optimization", "params": "gene_size=3-5"}
+    ],
+    "unsloth_presets": {
+      "merge_ready": {"r": 64, "alpha": 32, "dropout": 0.05, "lr": 2e-5},
+      "post_merge_tune": {"r": 32, "alpha": 16, "lr": 1e-5, "epochs": 1}
+    },
+    "evolutionary_params": {
+      "population_size": "16-32",
+      "generations": "50-200",
+      "mutation_rate": "0.1-0.3",
+      "elite_count": "Top 10%"
+    }
+  }
+}
+{
+  "quick_reference": {
+    "merging_methods": [
+      {
+        "name": "Linear",
+        "description": "Simple linear combination of model outputs.",
+        "best_conditions": "When models have similar performance and outputs.",
+        "worst_conditions": "High variance in model outputs.",
+        "major_settings": {
+          "weighting": "Equal weights for all models.",
+          "scaling": "Scale outputs based on performance metrics."
+        }
+      },
+      {
+        "name": "Task Arithmetic",
+        "description": "Adds scaled task vectors to the base model.",
+        "best_conditions": "Aligned models with low interference.",
+        "worst_conditions": "High conflict between task outputs.",
+        "major_settings": {
+          "scaling_factor": "0.5 to 1.0 based on task importance.",
+          "normalization": "Normalize task vectors before addition."
+        }
+      },
+      {
+        "name": "RegMean",
+        "description": "Regularized mean of model outputs.",
+        "best_conditions": "When reducing variance is critical.",
+        "worst_conditions": "When models are highly specialized.",
+        "major_settings": {
+          "regularization_strength": "0.1 to 0.5 based on model diversity.",
+          "weighting": "Weight outputs based on historical performance."
+        }
+      },
+      {
+        "name": "Voting",
+        "description": "Majority voting among model outputs.",
+        "best_conditions": "Classification tasks with clear labels.",
+        "worst_conditions": "When models disagree significantly.",
+        "major_settings": {
+          "threshold": "Majority vote (50%+).",
+          "weighting": "Weighted voting based on model accuracy."
+        }
+      },
+      {
+        "name": "Magnitude Prune",
+        "description": "Prunes low-magnitude parameters before merging.",
+        "best_conditions": "When models have noisy parameters.",
+        "worst_conditions": "When important parameters are pruned.",
+        "major_settings": {
+          "pruning_threshold": "0.1 to 0.3 based on parameter magnitude.",
+          "sparsity_level": "Adjust based on model size."
+        }
+      },
+      {
+        "name": "Git Rebasin",
+        "description": "Rebases model parameters based on a reference model.",
+        "best_conditions": "When aligning models to a common base.",
+        "worst_conditions": "When models are too dissimilar.",
+        "major_settings": {
+          "reference_model": "Select a well-performing base model.",
+          "rebasing_factor": "0.5 to 1.0 based on similarity."
+        }
+      },
+      {
+        "name": "DARE Linear",
+        "description": "Drop-and-rescale deltas in a linear merge.",
+        "best_conditions": "Sparse models with high interference.",
+        "worst_conditions": "When too many deltas are dropped.",
+        "major_settings": {
+          "drop_rate": "0.5 to 0.9 based on model density.",
+          "rescale_factor": "Adjust to maintain output magnitude."
+        }
+      },
+      {
+        "name": "TIES Linear",
+        "description": "Trims low-magnitude parameters and elects dominant signs.",
+        "best_conditions": "Multi-task merges with conflicting outputs.",
+        "worst_conditions": "When models have similar magnitudes.",
+        "major_settings": {
+          "sparsity": "Keep top 20-50% of parameters.",
+          "sign_election": "Elect based on majority sign."
+        }
+      },
+      {
+        "name": "Frankenmerge",
+        "description": "Combines layers from multiple models.",
+        "best_conditions": "When models have complementary strengths.",
+        "worst_conditions": "When layers are incompatible.",
+        "major_settings": {
+          "layer_selection": "Select layers based on performance metrics.",
+          "compatibility_check": "Ensure layers are from similar architectures."
+        }
+      },
+      {
+        "name": "Layer Wise",
+        "description": "Merges models layer by layer.",
+        "best_conditions": "When fine control over merging is needed.",
+        "worst_conditions": "When layers are highly interdependent.",
+        "major_settings": {
+          "layer_order": "Merge from input to output layers.",
+          "sparsity": "Adjust based on layer importance."
+        }
+      },
+      {
+        "name": "Multi Task",
+        "description": "Merges models trained on multiple tasks.",
+        "best_conditions": "When tasks are complementary.",
+        "worst_conditions": "When tasks conflict significantly.",
+        "major_settings": {
+          "task_weighting": "Weight based on task relevance.",
+          "evaluation_metrics": "Use multi-task benchmarks."
+        }
+      },
+      {
+        "name": "Expert Selection",
+        "description": "Selects the best-performing experts for merging.",
+        "best_conditions": "When expert performance varies widely.",
+        "worst_conditions": "When all experts perform similarly.",
+        "major_settings": {
+          "selection_criteria": "Use performance metrics to rank experts.",
+          "threshold": "Select top 20-30% based on accuracy."
+        }
+      },
+      {
+        "name": "Variance Reduction",
+        "description": "Reduces output variance through merging.",
+        "best_conditions": "When stability is critical.",
+        "worst_conditions": "When diversity is needed.",
+        "major_settings": {
+          "variance_threshold": "Set based on acceptable output variance.",
+          "weighting": "Weight outputs inversely to variance."
+        }
+      },
+      {
+        "name": "Top-k",
+        "description": "Selects the top k outputs based on probability.",
+        "best_conditions": "When a fixed number of outputs is desired.",
+        "worst_conditions": "When k is too small, losing valuable information.",
+        "major_settings": {
+          "k_value": "Adjust based on task complexity.",
+          "temperature": "Control randomness in selection."
+        }
+      },
+      {
+        "name": "Top-p (Nucleus Sampling)",
+        "description": "Selects outputs based on cumulative probability.",
+        "best_conditions": "When diversity in outputs is desired.",
+        "worst_conditions": "When p is too high, leading to noise.",
+        "major_settings": {
+          "p_value": "Set between 0.8 and 0.95 for optimal diversity.",
+          "temperature": "Adjust to control randomness."
+        }
+      },
+      {
+        "name": "Min-p",
+        "description": "Selects outputs based on minimum probability threshold.",
+        "best_conditions": "When ensuring a minimum quality level.",
+        "worst_conditions": "When too many outputs are filtered out.",
+        "major_settings": {
+          "min_probability": "Set based on acceptable output quality.",
+          "adjustment_factor": "Fine-tune based on model performance."
+        }
+      },
+      {
+        "name": "SLERP",
+        "description": "Spherical linear interpolation between models.",
+        "best_conditions": "When smooth transitions are needed.",
+        "worst_conditions": "When models are too dissimilar.",
+        "major_settings": {
+          "interpolation_factor": "Set between 0.0 and 1.0.",
+          "model_selection": "Choose models with similar outputs."
+        }
+      },
+      {
+        "name": "MoE (Mixture of Experts)",
+        "description": "Uses a subset of experts for each input.",
+        "best_conditions": "When computational efficiency is needed.",
+        "worst_conditions": "When all experts are needed for accuracy.",
+        "major_settings": {
+          "expert_count": "Select based on input complexity.",
+          "gating_function": "Adjust to control expert selection."
+        }
+      },
+      {
+        "name": "RMM (Robust Model Merging)",
+        "description": "Merges models while preserving robustness.",
+        "best_conditions": "When safety is a priority.",
+        "worst_conditions": "When flexibility is needed.",
+        "major_settings": {
+          "robustness_factor": "Set based on application requirements.",
+          "evaluation_metrics": "Use robustness benchmarks."
+        }
+      },
+      {
+        "name": "NegMerge",
+        "description": "Merges models by negating conflicting outputs.",
+        "best_conditions": "When models have conflicting predictions.",
+        "worst_conditions": "When negation removes valuable information.",
+        "major_settings": {
+          "conflict_threshold": "Set based on acceptable conflict levels.",
+          "negation_factor": "Adjust to control impact of negation."
+        }
+      }
+    ]
+  }
+}
+

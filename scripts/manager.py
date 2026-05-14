@@ -5,19 +5,20 @@ import os
 import webbrowser
 import time
 import logging
+import json
+import hashlib
+from pathlib import Path
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-# Docker images to build and manage
-# Note: breeding-vat-mergekit is deprecated - use breeding-vat-merge instead
 REQUIRED_IMAGES = {
-    "breeding-vat-ui": "docker/Dockerfile.ui",
-    "breeding-vat-merge": "docker/Dockerfile.merge",  # MergeKit + FusionBench
-    "breeding-vat-eval": "docker/Dockerfile.eval",
-    "breeding-vat-sae": "docker/Dockerfile.sae"
-    # Optional (for advanced features):
-    # "breeding-vat-fusionbench": "docker/Dockerfile.fusionbench"
+    "breeding-vat-ui":          "docker/Dockerfile.ui",
+    "breeding-vat-merge":       "docker/Dockerfile.merge",
+    "breeding-vat-eval":        "docker/Dockerfile.eval",
+    "breeding-vat-sae":         "docker/Dockerfile.sae",
+    "breeding-vat-fusionbench": "docker/Dockerfile.fusionbench",
 }
 
 def is_port_in_use(port):
@@ -38,7 +39,6 @@ def get_container_using_port(port):
     return None, None
 
 def is_container_healthy(container_id):
-    """Check if a container is running and healthy."""
     try:
         result = subprocess.run(
             ["docker", "ps", "-q", "--filter", f"id={container_id}"],
@@ -49,7 +49,6 @@ def is_container_healthy(container_id):
         return False
 
 def container_exists(container_name):
-    """Check if a container exists (running or stopped)."""
     try:
         result = subprocess.run(
             ["docker", "ps", "-a", "-q", "--filter", f"name=^{container_name}$"],
@@ -60,7 +59,6 @@ def container_exists(container_name):
         return False
 
 def get_container_id(container_name):
-    """Get container ID by name."""
     try:
         result = subprocess.run(
             ["docker", "ps", "-a", "-q", "--filter", f"name=^{container_name}$"],
@@ -86,7 +84,6 @@ def stop_container(container_id, port=None):
         return False
 
 def remove_container(container_id):
-    """Forcefully remove a container."""
     logger.info(f"Removing container {container_id[:12]}...")
     try:
         subprocess.run(["docker", "rm", "-f", container_id], check=True, capture_output=True)
@@ -96,7 +93,6 @@ def remove_container(container_id):
         return False
 
 def restart_container(container_id):
-    """Restart an existing container."""
     logger.info(f"Restarting existing container {container_id[:12]}...")
     try:
         subprocess.run(["docker", "start", container_id], check=True, capture_output=True)
@@ -106,7 +102,6 @@ def restart_container(container_id):
         return False
 
 def stop_all_vat_containers():
-    """Stop all Breeding Vat containers (graceful cleanup)."""
     logger.info("Stopping any running Breeding Vat containers...")
     try:
         result = subprocess.run(
@@ -138,7 +133,6 @@ def image_exists(image_name):
     return bool(result.stdout.strip())
 
 def image_size(image_name):
-    """Get image size in human-readable format."""
     try:
         result = subprocess.run(
             ["docker", "images", "--format", "{{.Size}}", image_name],
@@ -148,20 +142,90 @@ def image_size(image_name):
     except:
         return "unknown"
 
+def show_model_plan():
+    """Display what models will be downloaded."""
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("MODEL SPECIMENS (Recommended Preset)")
+    logger.info("=" * 70)
+    logger.info("")
+    logger.info("  WORKING GGUFs (quantized, runs on CPU):")
+    logger.info("    • Qwen3.5-0.8B-Reasoning-GGUF (Q4_K_M, ~600MB)")
+    logger.info("      └─ Advisor: reasoning & analysis")
+    logger.info("")
+    logger.info("  SAFETENSOR SPECIMENS (full precision):")
+    logger.info("    • Qwen2.5-1.5B-Instruct (safetensors, ~3GB)")
+    logger.info("      └─ General purpose baseline")
+    logger.info("    • DeepSeek-R1-Distill-Qwen-1.5B (safetensors, ~3GB)")
+    logger.info("      └─ Reasoning & CoT specimen")
+    logger.info("    • Qwen3-1.7B-Sushi-Coder (safetensors, ~3.5GB)")
+    logger.info("      └─ Code generation specimen")
+    logger.info("    • LaSER-Qwen3-0.6B (safetensors, ~1.5GB)")
+    logger.info("      └─ KB retriever utility model")
+    logger.info("")
+    logger.info("  Total size: ~15GB (approximate)")
+    logger.info("  Location: breeding_vat/data/model_zoo/")
+    logger.info("")
+    logger.info("=" * 70)
+    logger.info("")
+
+def download_models():
+    """Download base models for breeding."""
+    show_model_plan()
+    
+    logger.info("[*] Downloading models from HuggingFace...")
+    logger.info("    (This may take 15-30 minutes on first run)")
+    logger.info("")
+    
+    try:
+        result = subprocess.run(
+            [sys.executable, "scripts/download_models.py", "--preset", "recommended"],
+            check=False,
+            timeout=3600
+        )
+        if result.returncode == 0:
+            logger.info("")
+            logger.info("[✓] Models downloaded successfully.")
+            return True
+        else:
+            logger.warning("")
+            logger.warning("[!] Some models failed to download.")
+            logger.warning("    You can retry later. The system will work with what's available.")
+            return True
+    except subprocess.TimeoutExpired:
+        logger.warning("")
+        logger.warning("[!] Download timeout (>1 hour). Continuing anyway.")
+        logger.warning("    Models will be downloaded on first use.")
+        return True
+    except Exception as e:
+        logger.warning("")
+        logger.warning(f"[!] Model download error: {e}")
+        logger.warning("    Proceeding without pre-downloaded models.")
+        return True
+
+def ensure_directories():
+    dirs = [
+        "breeding_vat/data",
+        "breeding_vat/data/model_zoo",
+        "breeding_vat/data/merged_models",
+        "breeding_vat/data/eval_results",
+        "breeding_vat/configs",
+    ]
+    for d in dirs:
+        os.makedirs(d, exist_ok=True)
+        logger.debug(f"Directory ready: {d}")
+
 def rebuild_image(name, dockerfile, force=False):
-    """Rebuild a Docker image."""
     logger.info(f"Building {name}...")
     
-    # Remove old image if force rebuild
     if force and image_exists(name):
         logger.info(f"Force rebuild: removing old {name} image...")
         subprocess.run(["docker", "image", "rm", name, "-f"], capture_output=True)
     
     try:
         result = subprocess.run(
-            ["docker", "build", "-t", name, "-f", dockerfile, "."],
+            ["docker", "build", "-t", name, "-f", dockerfile, "--progress=plain", "."],
             check=True,
-            capture_output=True,
             text=True
         )
         logger.info(f"[✓] {name} built successfully ({image_size(name)})")
@@ -173,7 +237,6 @@ def rebuild_image(name, dockerfile, force=False):
         return False
 
 def ensure_images(force_rebuild=False):
-    """Verify and repair Docker images."""
     logger.info("[🧬] Verifying Lab Environment...")
     
     status = {}
@@ -183,7 +246,6 @@ def ensure_images(force_rebuild=False):
         else:
             status[name] = ("missing", "0B")
     
-    # Report status
     missing = [k for k, (s, _) in status.items() if s == "missing"]
     if not missing and not force_rebuild:
         logger.info("[✓] All systems operational.")
@@ -210,7 +272,6 @@ def ensure_images(force_rebuild=False):
     return True
 
 def cleanup_old_containers():
-    """Remove stopped Breeding Vat containers."""
     logger.info("Cleaning up old stopped containers...")
     try:
         result = subprocess.run(
@@ -232,44 +293,7 @@ def cleanup_old_containers():
         logger.warning(f"Cleanup failed: {e}")
         return True
 
-def download_models():
-    """Download base models for breeding."""
-    logger.info("[🧬] Checking for base models...")
-    try:
-        result = subprocess.run(
-            [sys.executable, "scripts/download_models.py"],
-            check=False
-        )
-        if result.returncode == 0:
-            logger.info("[✓] Models ready.")
-            return True
-        else:
-            logger.warning("[!] Model download skipped. Proceeding anyway.")
-            return True
-    except Exception as e:
-        logger.warning(f"Model download skipped: {e}")
-        return True
-
-def ensure_directories():
-    """Create necessary data directories."""
-    dirs = [
-        "breeding_vat/data",
-        "breeding_vat/data/merged_models",
-        "breeding_vat/data/eval_results",
-        "breeding_vat/configs",
-    ]
-    for d in dirs:
-        os.makedirs(d, exist_ok=True)
-        logger.debug(f"Directory ready: {d}")
-
 def run_ui(reuse_container=True):
-    """
-    Launch the Streamlit UI container.
-    
-    Args:
-        reuse_container: If True, reuse existing container if healthy
-    """
-    # Verify images are available
     if not ensure_images():
         logger.error("[X] Environment setup failed. Run 'setup.bat' to initialize.")
         return False
@@ -278,7 +302,6 @@ def run_ui(reuse_container=True):
     host_pwd = os.getcwd()
     container_name = "breeding-vat-ui"
 
-    # Check for existing container
     existing_cid = get_container_id(container_name)
     if existing_cid and reuse_container:
         is_healthy = is_container_healthy(existing_cid)
@@ -313,7 +336,6 @@ def run_ui(reuse_container=True):
                 else:
                     logger.warning("Could not restart container.")
             
-            # Ask user if they want to rebuild
             rebuild_choice = input("Rebuild container? (y/n): ").strip().lower() == 'y'
             if rebuild_choice:
                 logger.info("Removing old container and rebuilding...")
@@ -322,7 +344,6 @@ def run_ui(reuse_container=True):
                 logger.info("Skipping container recreation. Exiting.")
                 return False
 
-    # Create new container
     logger.info(f"[🧬] Launching Control Room on port {target_port}...")
 
     docker_cmd = [
@@ -362,9 +383,22 @@ def run_ui(reuse_container=True):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        if sys.argv[1] == "run":
+        if sys.argv[1] == "setup":
+            logger.info("[🧬] Breeding Vat - Initial Setup")
             ensure_directories()
+            if not ensure_images(force_rebuild=False):
+                logger.error("[X] Setup failed during image build.")
+                sys.exit(1)
+            logger.info("")
             download_models()
+            cleanup_old_containers()
+            logger.info("")
+            logger.info("[✓] Setup complete!")
+            logger.info("")
+            logger.info("Next: Run run.bat to start the Control Room")
+            
+        elif sys.argv[1] == "run":
+            ensure_directories()
             cleanup_old_containers()
             run_ui(reuse_container=True)
             
@@ -395,12 +429,13 @@ if __name__ == "__main__":
             logger.info("[✓] System reset complete. Run 'run.bat' to start fresh.")
             
         else:
-            print("Unknown command. Usage: manager.py [run|verify|rebuild|clean|reset]")
+            print("Unknown command. Usage: manager.py [setup|run|verify|rebuild|clean|reset]")
     else:
         print("Breeding Vat Container Manager")
-        print("Usage: manager.py [run|verify|rebuild|clean|reset]")
-        print("  run     - Start UI (reuses existing container if healthy)")
+        print("Usage: manager.py [setup|run|verify|rebuild|clean|reset]")
+        print("  setup   - Initialize environment (builds images, downloads models)")
+        print("  run     - Start UI (reuses container if healthy)")
         print("  verify  - Check environment & images")
         print("  rebuild - Force rebuild all Docker images")
         print("  clean   - Stop and remove stopped containers")
-        print("  reset   - Full reset (remove all, rebuild images)")
+        print("  reset   - Full system reset")

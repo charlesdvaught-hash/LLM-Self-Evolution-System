@@ -16,3 +16,11 @@ breeding_vat/data/merged_models/
 *.safetensors
 *.bin
 *.pth
+*.gguf
+
+# Downloaded / local model trees (Breeding Vat data — do not commit weights)
+breeding_vat/data/model_zoo/
+breeding_vat/data/gguf/
+breeding_vat/data/GGUF Models/
+breeding_vat/data/GGUF*/
+breeding_vat/gguf/

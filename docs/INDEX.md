@@ -17,6 +17,10 @@ Welcome to **The Breeding Vat** documentation. All guides and technical referenc
 1. **Quick overview**: [FUSIONBENCH_QUICKSTART.md](guides/FUSIONBENCH_QUICKSTART.md) (10 min)
 2. **Complete reference**: [reference/MERGING_METHODS_INVENTORY.md](reference/MERGING_METHODS_INVENTORY.md) (30 min)
 
+### I want orthogonal toggles (layerwise α, top-K, sign vote, mutation, etc.)
+- **Reference**: [reference/MERGING_METHODS_INVENTORY.md#advanced-orthogonal-toggles-opt-in](reference/MERGING_METHODS_INVENTORY.md) — Advanced Orthogonal Toggles section (11 opt-in toggles, route table, recipe shape, mutation behaviour)
+- **Code**: `breeding_vat/modules/merge/advanced_toggles.py` (post-merge transforms + outer-loop helpers) and `MergekitConfigBuilder.apply_*` in `mergekit_engine.py` (YAML emitters)
+
 ### I want to understand the system
 - **Read**: [reference/Architecture.md](reference/Architecture.md) (30 min)
 

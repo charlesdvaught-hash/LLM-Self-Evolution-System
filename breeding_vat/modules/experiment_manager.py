@@ -75,6 +75,7 @@ class ExperimentManager:
             "cycles_completed": 0,
             "best_model": None,
             "best_score": 0.0,
+            "registered_models": [],  # local specimens registered to this experiment
             "paths": {
                 "root": exp_dir,
                 "models": self.models_dir,
@@ -83,7 +84,8 @@ class ExperimentManager:
                 "results": self.results_dir,
                 "metadata": os.path.join(exp_dir, "experiment.json"),
                 "master_log": os.path.join(self.logs_dir, "master.log"),
-                "benchmark_db": os.path.join(self.results_dir, "benchmarks.json")
+                "benchmark_db": os.path.join(self.results_dir, "benchmarks.json"),
+                "assay_cache": os.path.join(self.results_dir, "assay_reference_cache.json"),
             }
         }
         
@@ -250,6 +252,34 @@ class ExperimentManager:
         logger.info(f"Saved config: {config_path}")
         return config_path
     
+    def register_specimen(self, experiment: Dict, model_name: str,
+                           zoo_path: str, source: str = "local_upload",
+                           metadata: Optional[Dict] = None) -> Dict:
+        """
+        Register a model as a specimen for this experiment.
+        Records it in experiment.json so the run is fully reproducible.
+        """
+        entry = {
+            "name": model_name,
+            "zoo_path": zoo_path,
+            "source": source,
+            "registered_at": datetime.now().isoformat(),
+            "metadata": metadata or {}
+        }
+        if "registered_models" not in experiment:
+            experiment["registered_models"] = []
+        # Avoid duplicates
+        existing = [m["name"] for m in experiment["registered_models"]]
+        if model_name not in existing:
+            experiment["registered_models"].append(entry)
+            self._save_metadata(experiment)
+            logger.info(f"Registered specimen '{model_name}' to experiment {experiment['id']}")
+        return entry
+
+    def get_specimens(self, experiment: Dict) -> List[Dict]:
+        """Return all specimens registered to this experiment."""
+        return experiment.get("registered_models", [])
+
     def finalize_experiment(self, experiment: Dict, status: str = "completed"):
         """
         Mark experiment as complete and save final state.

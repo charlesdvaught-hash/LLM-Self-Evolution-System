@@ -1,0 +1,7 @@
+{
+  "experiment_id": "Reasoning_at_3B_scale,_<4gb_vr_2026-05-12_192503",
+  "goal": "Reasoning at 3B scale, <4gb vram",
+  "base_models": [],
+  "created_at": "2026-05-12T19:25:03.794270",
+  "cycles": []
+}

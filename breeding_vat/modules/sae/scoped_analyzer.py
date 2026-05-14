@@ -227,22 +227,23 @@ class SAEScopedAnalyzer:
         for i in range(0, len(prompts), chunk_size):
             yield prompts[i:i+chunk_size]
     
-    def analyze_self(self, num_samples: int = 50, num_layers: Optional[int] = None) -> Dict[str, Any]:
+    def analyze_self(self, num_samples: int = 50, num_layers: Optional[int] = None, topic: Optional[str] = None) -> Dict[str, Any]:
         """
         Run memory-efficient self-analysis using streaming buffers.
-        
+
         Args:
             num_samples: Number of input samples to analyze
             num_layers: Limit to first N layers (None = all)
-            
+            topic: Optional topic to contextualize analysis prompts
+
         Returns:
             Dictionary with analysis results
         """
         self.load_model()
         logger.info(f"Starting memory-efficient self-analysis with {num_samples} samples...")
-        
+
         # Generate diverse prompts for analysis
-        prompts = self._generate_analysis_prompts(num_samples)
+        prompts = self._generate_analysis_prompts(num_samples, topic=topic)
         
         results = {
             "model_id": self.model_id,
@@ -305,30 +306,30 @@ class SAEScopedAnalyzer:
         try:
             # Create streaming buffer for online statistics
             streaming_buffer = StreamingActivationBuffer(
-                hidden_dim=768,  # Assume 768 hidden dim, will be corrected on first activation
+                hidden_dim=1,  # Sentinel value, will be corrected on first activation
                 chunk_size=self.config.chunk_size,
                 device="cpu"
             )
-            
+
             quantizer = QuantizedActivationStorage(quantization=self.config.quantization)
-            
+
             num_chunks = 0
-            
+
             # Process activations in streaming fashion
             for activation_chunk in self._stream_activations(prompts, layer_idx):
-                # Update hidden dim if needed
-                if activation_chunk.shape[-1] != streaming_buffer.hidden_dim:
+                # On first chunk only, reinitialize buffer with correct hidden_dim
+                if streaming_buffer.stats["count"] == 0:
                     streaming_buffer.hidden_dim = activation_chunk.shape[-1]
                     streaming_buffer.stats["mean"] = torch.zeros(activation_chunk.shape[-1])
                     streaming_buffer.stats["var"] = torch.zeros(activation_chunk.shape[-1])
-                
+
                 # Quantize to save memory
                 quantized = quantizer.quantize(activation_chunk)
-                
+
                 # Update statistics online (without storing full buffer)
                 dequantized = quantizer.dequantize(quantized)
                 streaming_buffer.update_stats(dequantized)
-                
+
                 num_chunks += 1
                 logger.debug(f"Layer {layer_idx}: processed chunk {num_chunks}")
             
@@ -342,7 +343,7 @@ class SAEScopedAnalyzer:
             layer_result["feature_importance"] = {
                 "top_dimensions": top_indices,
                 "top_importance_scores": importance[top_indices].tolist(),
-                "overall_sparsity": float(torch.abs(stats["mean"]) < 0.1).item() if stats["count"] > 0 else 0,
+                "overall_sparsity": float((torch.abs(stats["mean"]) < 0.1).float().mean().item()) if stats["count"] > 0 else 0.0,
                 "num_samples": stats["count"]
             }
             
@@ -358,7 +359,7 @@ class SAEScopedAnalyzer:
         
         return layer_result
     
-    def _generate_analysis_prompts(self, num_samples: int) -> List[str]:
+    def _generate_analysis_prompts(self, num_samples: int, topic: Optional[str] = None) -> List[str]:
         """Generate diverse prompts for analyzing internal representations."""
         base_prompts = [
             "What is the capital of France?",
@@ -372,17 +373,19 @@ class SAEScopedAnalyzer:
             "Tell me a joke.",
             "How does photosynthesis work?",
         ]
-        
+
         prompts = []
         for i in range(num_samples):
             base = base_prompts[i % len(base_prompts)]
+            if topic:
+                base = f"Regarding {topic}: {base}"
             if i % 3 == 0:
                 prompts.append(base)
             elif i % 3 == 1:
                 prompts.append(base + " Be concise.")
             else:
                 prompts.append(base + " Explain in detail.")
-        
+
         return prompts[:num_samples]
     
     def _detect_emergent_behaviors(self, layer_analysis: Dict) -> List[Dict]:

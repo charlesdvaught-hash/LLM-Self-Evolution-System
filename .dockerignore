@@ -5,5 +5,27 @@
 .env
 .venv
 node_modules
-data/models/*
-!data/schema.sql
+
+# Absolutely exclude large files - AI models
+breeding_vat/data/**
+FineTuning/**
+~/**
+.claude/**
+
+# Exclude documentation (but NOT requirements.txt)
+docs/
+.streamlit/
+*.md
+
+# IDE & OS
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Cache & temp
+*.egg-info
+dist/
+build/
+.cache/

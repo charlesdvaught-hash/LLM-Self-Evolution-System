@@ -278,3 +278,89 @@ Don't filter — evolution will:
 ---
 
 **The Breeding Vat now offers 20+ merging methods organized in the UI with customizable parameters for each.**
+
+---
+
+## Advanced Orthogonal Toggles (Opt-in)
+
+Orthogonal to the 20 merge methods above. Each toggle composes with any merge
+method; they are **not** new merge methods, they modify how a merge is built
+or post-processed. All are opt-in via the **🧬 Advanced Presets** sidebar
+expander, default OFF. Each toggle can be marked `mutate: true` to be jittered
+by the evolutionary genome across cycles.
+
+Implementation: `breeding_vat/modules/merge/advanced_toggles.py` (post-merge
+transforms + outer-loop helpers) and `MergekitConfigBuilder.apply_*` methods
+in `breeding_vat/modules/merge/mergekit_engine.py` (YAML emitters).
+
+| # | Toggle | Route | What it does | Params (bounds) |
+|---|--------|-------|--------------|-----------------|
+| T1 | `layerwise_alpha` | MergeKit YAML `slices:` | Scale merge strength per layer (early=syntax, mid=reasoning, late=chat) | `base_alpha` 0–2.5, `layer_mode` ∈ {flat, linear, frontloaded, backloaded, exponential, sigmoid, middle}, `gamma` 0.1–8, `total_layers` int |
+| T2 | `topk_sparsify` | MergeKit `density` | Keep top-K% strongest deltas (TIES/DARE density param) | `keep_percent` 0.1–100 |
+| T3 | `sign_consensus_mask` | MergeKit TIES `normalize` | Suppress directional disagreement between source models | `sign_mode` ∈ {majority, unanimous, weighted} |
+| T4 | `attn_mlp_filter` | MergeKit per-model `filter:` | Merge only selected module classes | `merge_attention/mlp/norms/embeddings` bool |
+| T5 | `bench_weighted_blend` | MergeKit `weight:` from scores | Per-model contribution weighted by benchmark score | `gamma` 0.5–5 (softmax sharpness) |
+| T6 | `dynamic_coef_sample` | Outer loop → YAML | Sample per-region/per-layer alphas each cycle (evolution genome) | `coef_scope` ∈ {region, layer, tensor, global}, `alpha_min/max` 0–2.5 |
+| T7 | `slerp_variants` | MergeKit native + post-merge | Standard SLERP via MergeKit; nuSLERP (magnitude-linear + direction-slerp) post-merge | `slerp_variant` ∈ {linear, slerp, nuslerp}, `t` 0–1 |
+| T8 | `lora_rank_prune` | PEFT post-merge | Drop weakest LoRA rank channels (adapter cleanup) | `retain_rank_percent` 1–100 |
+| T9 | `cosine_filter` | Post-merge tensor pass | Reject per-tensor merges with low cosine similarity | `similarity_threshold` -1–1, `cosine_mode` ∈ {suppress, keep_a, keep_b, report} |
+| T10 | `gaussian_mutation` | Post-merge tensor pass | Add N(0, σ) noise to selected weights (evolution diversity) | `mutation_sigma` 0–0.01, `mutation_target` ∈ {all, attention, mlp, embedding, lora} |
+| T11 | `alt_layer_inject` | MergeKit `passthrough` slices | Alternate transformer layers between source models | `alt_pattern` ∈ {odd_even, even_odd, first_half, second_half, random, custom} |
+| T12 | `embedding_mode` | MergeKit `tokenizer_source` + filter | Tokenizer/embedding handling | `embedding_mode` ∈ {partial, freeze, full, scaled} |
+
+### Routing summary
+
+- **MergeKit YAML emitters** (8 toggles): T1, T2, T3, T4, T5, T7 (standard), T11, T12 — translated into native MergeKit config keys via `MergekitConfigBuilder.apply_layerwise_alpha`, `apply_density`, `apply_module_filters`, `apply_per_model_weights`, `apply_tokenizer_mode`, `build_passthrough_slices`.
+- **Post-merge state_dict transforms** (3 toggles): T7 (nuSLERP variant), T8, T9, T10 — applied by `advanced_toggles.apply_post_transforms_streaming(model_dir, advanced)`. Streams safetensors shard-by-shard for 8GB-VRAM compliance.
+- **Outer-loop only** (1 toggle): T6 — samples alphas before each cycle; values flow into T1's YAML emitter.
+
+### Recipe shape (`recipe['advanced']`)
+
+```json
+{
+  "advanced": {
+    "layerwise_alpha": {
+      "enabled": true,
+      "mutate":  false,
+      "params":  {"base_alpha": 1.0, "layer_mode": "linear",
+                  "gamma": 1.0, "total_layers": 32}
+    },
+    "gaussian_mutation": {
+      "enabled": true,
+      "mutate":  true,
+      "params":  {"mutation_sigma": 1e-4, "mutation_target": "attention"}
+    }
+  }
+}
+```
+
+Validation: `RecipeValidator._check_advanced` enforces bounds via `PARAM_BOUNDS`
+and choices via `PARAM_CHOICES`. Unknown toggle names raise `ValidationError`
+so typos cannot silently no-op.
+
+### Mutation behaviour
+
+When a toggle is marked `mutate: true`, `EvolutionEngine._mutate_advanced_for_cycle(cycle)`
+jitters its numeric params at the top of each cycle:
+
+- Numeric: gaussian step of 10% of (max − min) range, clipped to bounds.
+- Categorical: uniform random choice from `PARAM_CHOICES[name]`.
+
+This makes any S/A-tier toggle a first-class evolutionary parameter.
+
+### References
+
+| Toggle | Paper / source |
+|--------|----------------|
+| layerwise_alpha | LiNeS https://arxiv.org/abs/2311.03099 · Layer-Aware TA https://arxiv.org/abs/2403.17806 |
+| topk_sparsify | TIES https://arxiv.org/abs/2306.01708 · DARE https://arxiv.org/abs/2311.03099 · DELLA https://arxiv.org/abs/2406.11617 |
+| sign_consensus_mask | TIES https://arxiv.org/abs/2306.01708 |
+| attn_mlp_filter | MergeKit filter docs https://github.com/arcee-ai/mergekit |
+| bench_weighted_blend | Model Soups https://arxiv.org/abs/2203.05482 |
+| slerp_variants | MergeKit SLERP / nuSLERP https://github.com/arcee-ai/mergekit |
+| lora_rank_prune | LoRA https://arxiv.org/abs/2106.09685 · LoraHub https://arxiv.org/abs/2307.13269 |
+| cosine_filter | Sens-Merging https://arxiv.org/abs/2402.04506 · Fisher https://arxiv.org/abs/2111.09832 |
+| gaussian_mutation | Evolutionary merge inspiration https://arxiv.org/abs/2403.13187 |
+| alt_layer_inject | FrankenMoE https://arxiv.org/abs/2404.19145 · MergeKit passthrough |
+| dynamic_coef_sample | MergeKit evolutionary experimentation |
+

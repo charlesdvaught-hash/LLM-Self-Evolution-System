@@ -1,0 +1,528 @@
+{
+  "bank_name": "breeding_vat_general_v1",
+  "version": "1.0",
+  "chance_level": 0.25,
+  "calibration_target": "6-10B models, moderately difficult",
+  "questions": [
+    {
+      "id": "q001",
+      "topic": "merge_methods",
+      "question": "When merging two models trained on different domains, TIES-Merging addresses weight interference by clamping updates to the top-k percent by magnitude. Why not use 100% (apply all non-zero updates)?",
+      "choices": {
+        "A": "Because it's computationally faster than comparing magnitudes",
+        "B": "Because small-magnitude updates in high-interference regions can accumulate errors in the merged model",
+        "C": "Because sign conflicts occur more frequently in updates with large magnitudes",
+        "D": "Because TIES always requires exactly 20% of parameters to be changed"
+      },
+      "answer": "B",
+      "rationale": "TIES selectively keeps high-magnitude updates while discarding small ones that often encode task-specific noise rather than shared knowledge; 100% would reintroduce interference. A misses the core insight about selective update retention, C reverses the magnitude relationship, and D is a false constraint."
+    },
+    {
+      "id": "q002",
+      "topic": "merge_methods",
+      "question": "DARE (Dropping And REscaling) randomizes which weights to drop from task-specific models before merging. What problem does rescaling the retained weights address?",
+      "choices": {
+        "A": "It prevents the base model from being diluted since fewer updates are applied in aggregate",
+        "B": "It ensures the sparsified updates have the same L2 norm as the original full updates",
+        "C": "It corrects numerical instability from dropping parameters with large gradients",
+        "D": "It eliminates sign conflicts that occur during the averaging step"
+      },
+      "answer": "A",
+      "rationale": "Rescaling compensates for applying fewer updates on average, maintaining aggregate contribution. B confuses rescaling purpose (norm is not the goal), C misidentifies the source of instability (dropping is random, not gradient-dependent), and D is a different merge problem unrelated to rescaling."
+    },
+    {
+      "id": "q003",
+      "topic": "merge_methods",
+      "question": "When should Task Arithmetic (direct weight averaging with scaling) outperform TIES-Merging for combining two models?",
+      "choices": {
+        "A": "When the two models are from completely different architectures or tokenizer vocabularies",
+        "B": "When the models were fine-tuned on very similar domains with minimal negative interference expected",
+        "C": "When one model is much larger (10x parameters) than the other",
+        "D": "When the computational budget is unlimited and you can afford fine-tuning post-merge"
+      },
+      "answer": "B",
+      "rationale": "Task Arithmetic works best when interference is low; TIES adds complexity only when selective update retention helps. A is false (same arch required), C is orthogonal to merge method choice, and D reverses the logic (fine-tuning helps both methods equally)."
+    },
+    {
+      "id": "q004",
+      "topic": "merge_methods",
+      "question": "FrankenMoE creates a mixture-of-experts model by routing inputs to different merged expert models. Which architectural choice is most critical for preventing performance collapse?",
+      "choices": {
+        "A": "Using more than 8 experts to ensure expert specialization",
+        "B": "Ensuring the router is trained on the same domain as all expert models",
+        "C": "Training expert models to have minimally overlapping capability spaces before merging",
+        "D": "Using SLERP (spherical linear interpolation) instead of linear weight averaging for experts"
+      },
+      "answer": "C",
+      "rationale": "FrankenMoE depends on expert complementarity; overlapping capabilities waste routing decisions and cause interference. B is important but secondary, A confuses quantity with specialization, and D is orthogonal (SLERP vs averaging doesn't address redundancy)."
+    },
+    {
+      "id": "q005",
+      "topic": "merge_methods",
+      "question": "SLERP merging interpolates model weights along the shortest path on a high-dimensional sphere. When does SLERP significantly outperform linear interpolation?",
+      "choices": {
+        "A": "When merging models from the same initialization seed but different training runs",
+        "B": "When weight distributions have high variance and models occupy geometrically distant regions in weight space",
+        "C": "When merging more than three models simultaneously",
+        "D": "When one model is 5-10x larger than the other in parameter count"
+      },
+      "answer": "B",
+      "rationale": "SLERP respects the manifold geometry and prevents linear interpolation from cutting through low-probability regions; high variance and distance maximize this benefit. A describes models likely close in weight space, C requires different techniques, and D doesn't determine relative geometry."
+    },
+    {
+      "id": "q006",
+      "topic": "when_succeed_fail",
+      "question": "You merge two instruction-following models trained on overlapping instruction sets using simple weight averaging. Performance drops on both instruction domains. What is the most likely cause?",
+      "choices": {
+        "A": "The two models encode contradictory instruction representations and create interference in the same weight regions",
+        "B": "The averaging operation reduces parameter magnitude too much, making activations too small",
+        "C": "One model's instruction tuning was overfit and cannot generalize when averaged",
+        "D": "The base models had different learning rates during fine-tuning"
+      },
+      "answer": "A",
+      "rationale": "Overlapping domains with different fine-tuning trajectories create sign conflicts and interference exactly where knowledge should be preserved. B would affect all tasks equally, C is a single-model issue unrelated to merging, and D doesn't explain post-merge degradation."
+    },
+    {
+      "id": "q007",
+      "topic": "when_succeed_fail",
+      "question": "A merge of model A (math specialist) and model B (code specialist) produces high performance on both domains. What does this success most directly indicate about the models?",
+      "choices": {
+        "A": "The models used identical optimizers and learning rates during fine-tuning",
+        "B": "The specialized knowledge is encoded in distinct weight regions with minimal overlap",
+        "C": "One model is significantly larger and dominates the merged model's behavior",
+        "D": "The merge method used SLERP instead of linear interpolation"
+      },
+      "answer": "B",
+      "rationale": "Successful merging of complementary specialists requires localized, non-overlapping weight changes. A is false, C contradicts the equal performance, and D is implementation-independent of the underlying factor (non-overlapping specialization)."
+    },
+    {
+      "id": "q008",
+      "topic": "when_succeed_fail",
+      "question": "When merging three models, you observe that pairwise merges (A+B, B+C, A+C) each work well, but the three-way merge (A+B+C) severely underperforms. Why?",
+      "choices": {
+        "A": "The three-way merge requires a different loss function than pairwise merging",
+        "B": "Averaging three models dilutes each model's contribution below a critical threshold",
+        "C": "With three distinct fine-tuning trajectories, conflicts compound in shared weight regions and averaging provides no escape through selective retention",
+        "D": "The three-way merge needs an adaptive learning rate to be implemented correctly"
+      },
+      "answer": "C",
+      "rationale": "Two models often have complementary solutions; three introduce conflicting gradients in many regions simultaneously, and naive averaging cannot resolve all conflicts. B oversimplifies (scaling weights helps), A and D are implementation details unrelated to the core conflict."
+    },
+    {
+      "id": "q009",
+      "topic": "scaling_laws",
+      "question": "According to the floor+tail law for model merging, what determines the minimum guaranteed performance of a merged model?",
+      "choices": {
+        "A": "The performance of the best individual model being merged",
+        "B": "The geometric mean of all individual model performances",
+        "C": "The performance of the worst individual model being merged, on average across domains",
+        "D": "A domain-dependent lower bound based on base model capacity"
+      },
+      "answer": "C",
+      "rationale": "The floor+tail law states merged performance lower bounds to the worst-performing source model's accuracy on overlapping domains. A ignores the floor guarantee, B is not a law outcome, and D misses the empirical bounding principle."
+    },
+    {
+      "id": "q010",
+      "topic": "scaling_laws",
+      "question": "How does the number of expert models in a mixture-of-experts merge affect the scaling laws for task coverage?",
+      "choices": {
+        "A": "More experts scale linearly with task count, doubling experts allows 2x more tasks without performance loss",
+        "B": "More experts provide logarithmic returns; each new expert covers fewer remaining tasks as overlap increases",
+        "C": "Expert count is independent of scaling laws; performance depends only on merge quality",
+        "D": "More experts always degrade performance due to routing confusion regardless of task count"
+      },
+      "answer": "B",
+      "rationale": "Expert specialization provides diminishing returns as new experts increasingly overlap with existing capability; logarithmic scaling reflects this. A assumes independence (false), C ignores expert count effects on coverage, and D reverses the typical outcome with good routing."
+    },
+    {
+      "id": "q011",
+      "topic": "scaling_laws",
+      "question": "When merging a 7B base model with task-specific models, how does increasing the base model size affect merge stability and performance ceiling?",
+      "choices": {
+        "A": "Larger base models increase merge stability by having more redundant pathways, but lower the performance ceiling since there's less room for task-specific knowledge",
+        "B": "Larger base models improve merge stability and raise the performance ceiling by providing more capacity for task-specific weights",
+        "C": "Base model size has no effect on merge outcomes, only on inference latency",
+        "D": "Larger base models decrease stability because more parameters means more opportunities for interference"
+      },
+      "answer": "B",
+      "rationale": "Larger base models provide redundant pathways (stability) and more parameter space for diverse specialization (higher ceiling). A reverses the capacity effect, C ignores the stability-capacity relationship, and D confuses parameter count with interference likelihood."
+    },
+    {
+      "id": "q012",
+      "topic": "scaling_laws",
+      "question": "In an evolutionary merging experiment, you observe that fitness improvements plateau as you scale from 3 experts to 8 experts. What is the most likely explanation?",
+      "choices": {
+        "A": "Computational overhead of managing more experts outweighs the benefit",
+        "B": "Expert overlap has increased, and most new experts redundantly cover existing capability space",
+        "C": "The routing network is underfitted and needs more training iterations",
+        "D": "You should switch to a different merge method that scales better with expert count"
+      },
+      "answer": "B",
+      "rationale": "Plateau reflects saturation of the task space; new experts increasingly duplicate existing coverage. A confuses fitness (quality) with computational cost, C is a training issue not a scaling limit, and D doesn't address the underlying redundancy problem."
+    },
+    {
+      "id": "q013",
+      "topic": "layer_wise_behavior",
+      "question": "In transformer models, which layers typically encode the most task-specific knowledge and should be most carefully merged to avoid interference?",
+      "choices": {
+        "A": "Embedding and early transformer layers, which capture fundamental linguistic patterns",
+        "B": "Middle transformer layers, which often specialize for task-specific reasoning",
+        "C": "Late transformer layers and output projection, which encode task-specific decision boundaries",
+        "D": "All layers equally, since knowledge is distributed uniformly across the network"
+      },
+      "answer": "C",
+      "rationale": "Late layers capture high-level task-specific features and decision boundaries; merging them aggressively causes largest performance drops. A and B encode general features less sensitive to task switching, and D ignores empirical layer-specialization patterns."
+    },
+    {
+      "id": "q014",
+      "topic": "layer_wise_behavior",
+      "question": "You observe high sign conflict in early embedding layers when merging two models. Should you aggressively select or protect these layers?",
+      "choices": {
+        "A": "Protect them; early layers encode fundamental linguistic patterns that must be preserved from one model or the other",
+        "B": "Aggressively select using TIES; high sign conflict indicates redundant information that can be pruned",
+        "C": "Average them normally; high sign conflict in early layers is noise and will be corrected downstream",
+        "D": "Replace early layers entirely with the better-performing model and only merge later layers"
+      },
+      "answer": "A",
+      "rationale": "Early layers with sign conflict encode incompatible linguistic foundations; protecting one model's path is safer than attempting to merge conflicting bases. B misreads conflict as redundancy, C ignores downstream effects, and D abandons merging benefits."
+    },
+    {
+      "id": "q015",
+      "topic": "layer_wise_behavior",
+      "question": "When performing layer-wise merging, why might intermediate layers benefit from more aggressive selective update application (higher TIES thresholds) compared to final layers?",
+      "choices": {
+        "A": "Intermediate layers are easier to compute, allowing more fine-grained selection",
+        "B": "Intermediate layers perform representation learning with more overlap across tasks; final layers specialize and need broader averaging",
+        "C": "Intermediate layers have more parameters and can afford to discard more updates",
+        "D": "Aggressive selection prevents catastrophic forgetting only when applied before the output layer"
+      },
+      "answer": "B",
+      "rationale": "Intermediate layers learn shared representations with task-overlap, permitting selective retention; final layers specialize and need broader integration. A is computational (irrelevant to selection), C confuses parameter count with interference, and D doesn't explain why selection would be layer-specific."
+    },
+    {
+      "id": "q016",
+      "topic": "layer_wise_behavior",
+      "question": "You merge two models and find that all downstream tasks degrade, but early-layer representations (before merging) remain high-quality. Where is interference most likely occurring?",
+      "choices": {
+        "A": "In embedding layers, which were improperly initialized during merging",
+        "B": "In the merged attention patterns of middle layers, creating representation misalignment downstream",
+        "C": "In task-specific output projections and decision boundaries of late layers",
+        "D": "In the residual connections, which accumulate merged weight errors"
+      },
+      "answer": "C",
+      "rationale": "Good early representations with downstream failure indicates late-layer decision boundaries don't align with merged representations. A would corrupt input (not selective degradation), B would degrade representation quality directly, and D would affect all layers uniformly."
+    },
+    {
+      "id": "q017",
+      "topic": "activation_weight_analysis",
+      "question": "When analyzing merged model weights, why is magnitude distribution (e.g., L2 norm per layer) insufficient to understand if a merge was successful?",
+      "choices": {
+        "A": "Because magnitude tells you parameter values but not how they interact to produce task-relevant features",
+        "B": "Because successful merges always result in larger magnitude distributions regardless of task performance",
+        "C": "Because merged models always show reduced magnitudes due to averaging, which cannot be overcome",
+        "D": "Because L2 norm is deprecated for neural network analysis and should never be used"
+      },
+      "answer": "A",
+      "rationale": "Magnitude is necessary but not sufficient; you need activation analysis to see if merged weights produce coherent task-specific features. B is false (good merges can have normal magnitudes), C misses rescaling strategies, and D incorrectly dismisses L2 norm."
+    },
+    {
+      "id": "q018",
+      "topic": "activation_weight_analysis",
+      "question": "You compute layer-wise activation statistics (mean, std, sparsity) for a merged model and find that one layer has dramatically lower activation magnitudes than both source models. What does this likely indicate?",
+      "choices": {
+        "A": "This layer's weights were averaged too conservatively and need rescaling",
+        "B": "The merged layer weights are encoding conflicting information that cancels out when computing activations",
+        "C": "This is expected and optimal, since merging naturally reduces activation magnitudes",
+        "D": "The layer requires additional fine-tuning to restore activation levels"
+      },
+      "answer": "B",
+      "rationale": "Collapsed activations suggest sign-conflicted weight averaging producing near-cancellation. A suggests rescaling (sometimes valid), but the underlying problem is interference, C is false (good merges preserve activation ranges), and D is a potential fix but doesn't explain the cause."
+    },
+    {
+      "id": "q019",
+      "topic": "activation_weight_analysis",
+      "question": "When comparing activation contribution across layers (how much each layer's output affects final prediction), which layers should you expect to have highest contribution in a well-merged model?",
+      "choices": {
+        "A": "Early layers, which establish the foundation for all downstream computation",
+        "B": "Middle layers, which are equidistant from input and output and most stable",
+        "C": "Late layers, especially task-specific output projections, which directly shape decisions",
+        "D": "All layers equally, since transformers distribute information uniformly by design"
+      },
+      "answer": "C",
+      "rationale": "Late layers directly impact output and have highest decision influence. A and B are less directly predictive, and D ignores empirical task-importance hierarchy."
+    },
+    {
+      "id": "q020",
+      "topic": "activation_weight_analysis",
+      "question": "A merged model shows high variance in per-neuron activation magnitudes within a single layer (some neurons very active, others dormant). How should you interpret this?",
+      "choices": {
+        "A": "This indicates successful specialization; different neurons encode different task-specific features",
+        "B": "This indicates failed merging; activation variance should be uniform across neurons in well-merged models",
+        "C": "This is a sign of poor initialization and requires layer normalization adjustment",
+        "D": "High variance is expected and diagnostically neutral—layer performance metrics matter more"
+      },
+      "answer": "A",
+      "rationale": "High neuron-level variance reflects specialized pathway activation; this is desirable for task-specific models. B reverses expectations (specialization requires variance), C conflates preprocessing with merging outcomes, and D is overstated (variance patterns do indicate health)."
+    },
+    {
+      "id": "q021",
+      "topic": "evolutionary_optimization",
+      "question": "In CMA-ES optimization for model merging, what does the covariance matrix track, and why is this important?",
+      "choices": {
+        "A": "Covariance between model parameters; it's important because it identifies redundant parameters to prune",
+        "B": "Covariance between individual fitness improvements; it's important for determining learning rates",
+        "C": "The correlation structure of successful mutations in the search space; it adapts the mutation distribution to promising regions",
+        "D": "Covariance between merge weights and task accuracies; it's important for identifying overfitting"
+      },
+      "answer": "C",
+      "rationale": "CMA-ES covariance adapts the mutation distribution based on successful past steps, concentrating exploration in high-fitness regions. A misidentifies the tracking target, B conflates fitness with adaptation, and D describes correlation analysis rather than CMA-ES mechanics."
+    },
+    {
+      "id": "q022",
+      "topic": "evolutionary_optimization",
+      "question": "When using evolutionary algorithms to optimize merge hyperparameters (e.g., TIES thresholds per layer), what is the primary benefit over grid search?",
+      "choices": {
+        "A": "Evolutionary algorithms are guaranteed to find the global optimum faster",
+        "B": "They efficiently explore high-dimensional hyperparameter spaces by learning from successful mutations, avoiding dense grid sampling",
+        "C": "They eliminate the need for validation data by internally assessing fitness",
+        "D": "They work better on GPU hardware due to parallelization advantages"
+      },
+      "answer": "B",
+      "rationale": "Evolution learns promising directions; grid search samples uniformly. A is false (no global guarantee), C ignores validation necessity, and D is hardware-independent."
+    },
+    {
+      "id": "q023",
+      "topic": "evolutionary_optimization",
+      "question": "In an evolutionary merge optimization, you define fitness as: (math_acc + code_acc + general_acc) / 3. What problem might this create?",
+      "choices": {
+        "A": "It equally weights all domains, missing that some tasks are more critical than others for the application",
+        "B": "It fails to account for the floor+tail law and allows good-performing merges to be eliminated",
+        "C": "It requires more computational resources than using a single-task fitness function",
+        "D": "It is mathematically invalid for evolutionary algorithms"
+      },
+      "answer": "A",
+      "rationale": "Equal weighting ignores domain importance in real use cases (e.g., critical tasks should have higher weights). B is a constraint that should be checked separately, C confuses complexity, and D is false."
+    },
+    {
+      "id": "q024",
+      "topic": "evolutionary_optimization",
+      "question": "When evolving merge weights in a fitness landscape with many plateaus (flat regions), how should you adjust the mutation strategy?",
+      "choices": {
+        "A": "Increase mutation variance to escape plateaus faster and explore new regions",
+        "B": "Decrease mutation variance to refine the current plateau more thoroughly",
+        "C": "Switch to random restarts instead of adaptive covariance since covariance becomes uninformative",
+        "D": "Add noise to the fitness function to break plateaus artificially"
+      },
+      "answer": "A",
+      "rationale": "Plateaus require larger mutations to escape; adaptive covariance (CMA-ES) will automatically adjust if you increase variance. B inverts the strategy (refining requires smaller mutations), C abandons learning from past successes, and D masks the underlying problem."
+    },
+    {
+      "id": "q025",
+      "topic": "fine_tuning_interactions",
+      "question": "You merge two models and observe strong performance, but fine-tuning the merged model on a new task causes all performance to collapse on the original tasks. What has likely occurred?",
+      "choices": {
+        "A": "Catastrophic forgetting, where fine-tuning updates interfere with the delicate balance of merged weights",
+        "B": "The base model was too small and cannot accommodate new task-specific weights",
+        "C": "The original fine-tuning was overfit and cannot generalize to new tasks",
+        "D": "This is expected behavior and indicates successful transfer learning to the new task"
+      },
+      "answer": "A",
+      "rationale": "Merged models have fragile weight balance; naive fine-tuning disrupts it. B would affect original performance predicting new task difficulty, C is a source-model issue, and D misinterprets catastrophic forgetting as success."
+    },
+    {
+      "id": "q026",
+      "topic": "fine_tuning_interactions",
+      "question": "To safely fine-tune a merged model without catastrophic forgetting, you apply LoRA adapters instead of full-weight updates. Why does this help?",
+      "choices": {
+        "A": "LoRA increases parameter count, providing more capacity for new knowledge without disturbing merged weights",
+        "B": "LoRA updates are smaller in magnitude by design, reducing interference with merged weight balance",
+        "C": "LoRA allows gradient updates only in low-rank subspaces, leaving the merged weight structure largely intact while adapting to new tasks",
+        "D": "LoRA automatically prevents sign conflicts by using orthogonal weight matrices"
+      },
+      "answer": "C",
+      "rationale": "LoRA constrains updates to low-rank spaces, preserving the merged structure. A confuses parameter count (LoRA adds adapters, not base params), B is partially true but incomplete, and D doesn't reflect LoRA mechanism."
+    },
+    {
+      "id": "q027",
+      "topic": "fine_tuning_interactions",
+      "question": "You merge models A and B, then fine-tune post-merge with LoRA on task C. Performance on C improves, but both A and B's original tasks degrade slightly. Why?",
+      "choices": {
+        "A": "LoRA adapters always degrade performance on tasks not included in fine-tuning",
+        "B": "The LoRA rank is too high; lower rank would better preserve original task knowledge",
+        "C": "Fine-tuning learned a task C-specific LoRA that provides weaker mappings to A and B's knowledge in the merged model",
+        "D": "The merged model was unstable and could not be fine-tuned successfully"
+      },
+      "answer": "C",
+      "rationale": "LoRA learns task-specific projections that prioritize task C over original knowledge, causing trade-offs. A is too broad (LoRA can help), B conflates rank with specificity (lower rank wouldn't fix prioritization), and D overstates instability."
+    },
+    {
+      "id": "q028",
+      "topic": "fine_tuning_interactions",
+      "question": "In post-merge fine-tuning, you apply different learning rates to different layers. For a stable merge, which layers should use lowest learning rates?",
+      "choices": {
+        "A": "Embedding and early layers, which provide foundational representations",
+        "B": "Middle layers, which are least affected by task-specific fine-tuning",
+        "C": "Task-specific late layers and output projections, which already encode the delicate merged knowledge",
+        "D": "All layers equally; differential learning rates create instability in merged models"
+      },
+      "answer": "C",
+      "rationale": "Late layers encode the merged task-specific structure most fragily; they need lowest rates. A and B have more robustness, and D ignores that merged models benefit from layer-aware tuning."
+    },
+    {
+      "id": "q029",
+      "topic": "benchmark_interpretation",
+      "question": "A merged model scores 85% on task A, 45% on task B (both important for your application). How should you interpret this result?",
+      "choices": {
+        "A": "Average performance is 65%; the merge is successful",
+        "B": "The merge likely contains task-specific interference causing severe forgetting on task B; investigate layer-wise contribution",
+        "C": "Task B's benchmark is too difficult and should be replaced with an easier one",
+        "D": "The floor+tail law guarantees that both source models also performed between 45-85% on these tasks"
+      },
+      "answer": "B",
+      "rationale": "Wide performance gaps after merging suggest selective forgetting and interference in task B's regions. A misleads with averaging (floor+tail matters more), C avoids diagnosis, and D doesn't follow the law (it bounds lower, not range)."
+    },
+    {
+      "id": "q030",
+      "topic": "benchmark_interpretation",
+      "question": "You run three benchmarks on a merged model: single-task focus, multi-task broad coverage, and out-of-distribution robustness. Performance ranks as: multi-task > single-task > OOD. What does this pattern suggest?",
+      "choices": {
+        "A": "The merge is successful and generalizes well across all conditions",
+        "B": "The merge learned primarily in-distribution patterns without robust representations; task interference may not be the limiting factor",
+        "C": "Single-task performance should always exceed multi-task; this result indicates a poor merge",
+        "D": "Out-of-distribution robustness is independent of merge quality and should be ignored"
+      },
+      "answer": "B",
+      "rationale": "OOD degradation suggests in-distribution overfitting rather than catastrophic interference. A overstates success, C ignores multi-task benefits, and D dismisses diagnostic value."
+    },
+    {
+      "id": "q031",
+      "topic": "benchmark_interpretation",
+      "question": "A merged model improves over both source models on a test set but degrades significantly on a different validation set from the same domain. What should you check first?",
+      "choices": {
+        "A": "Whether the validation set contains out-of-distribution examples that the merge cannot handle",
+        "B": "Whether the test set was used during fine-tuning or evolutionary optimization, causing overfitting to test-specific patterns",
+        "C": "Whether the base model is too small to generalize beyond the test set",
+        "D": "Whether the merge method is fundamentally incompatible with your domain"
+      },
+      "answer": "B",
+      "rationale": "Diverging test/validation performance indicates data leakage or overfitting to test-specific characteristics. A confuses in-domain differences with OOD drift, C is architectural (unrelated to merge), and D is premature without checking methodology."
+    },
+    {
+      "id": "q032",
+      "topic": "benchmark_interpretation",
+      "question": "When benchmarking merged models on instruction-following tasks, why should you report both per-instruction accuracy and instruction-category breakdown separately?",
+      "choices": {
+        "A": "Because overall accuracy may mask severe forgetting in specific instruction categories that are critical to the application",
+        "B": "Because merged models always show uniform forgetting across categories",
+        "C": "Because per-instruction metrics are faster to compute than category breakdowns",
+        "D": "Because instruction-following is independent of model merging and only baseline performance matters"
+      },
+      "answer": "A",
+      "rationale": "Category breakdown identifies selective forgetting; overall accuracy hides critical failures. B is false (forgetting is typically selective), C prioritizes wrong metric, and D ignores merge-specific effects."
+    },
+    {
+      "id": "q033",
+      "topic": "model_self_evaluation",
+      "question": "You ask a merged model to evaluate its own confidence on a task (e.g., 'How confident are you in this answer?'). High confidence is correlated with low accuracy. What does this suggest?",
+      "choices": {
+        "A": "The model is well-calibrated and honestly reporting uncertainty",
+        "B": "Confidence estimation was learned incorrectly during fine-tuning, and the model's reasoning quality may also be suspect",
+        "C": "The merge successfully combined models but produced overconfident decision boundaries",
+        "D": "Self-evaluation is independent of merge quality and this result is uninformative"
+      },
+      "answer": "B",
+      "rationale": "Inverse confidence-accuracy correlation indicates the model learned incorrect confidence signals, suggesting broader reasoning degradation. A is contradicted by the correlation, C misses underlying cause (not just boundaries), and D ignores diagnostic value."
+    },
+    {
+      "id": "q034",
+      "topic": "model_self_evaluation",
+      "question": "A merged model is asked: 'What are your limitations on this task?' and provides weak or generic answers. How should you interpret this?",
+      "choices": {
+        "A": "The model is functioning normally; most models have limited self-awareness",
+        "B": "The model may not have developed consistent internal models of its capabilities post-merge; test with targeted failure cases",
+        "C": "Asking about limitations is an unfair assessment and should be replaced with accuracy metrics only",
+        "D": "Poor self-assessment indicates the merge failed regardless of task performance"
+      },
+      "answer": "B",
+      "rationale": "Weak self-assessment post-merge suggests the model's internal model of merged capabilities is underdeveloped; targeted testing can validate. A dismisses diagnostic value, C avoids a useful check, and D overgeneralizes."
+    },
+    {
+      "id": "q035",
+      "topic": "model_self_evaluation",
+      "question": "You merge models A and B, then ask the merged model: 'Which of your original training domains were you specialized for?' and it answers inconsistently. What is most likely?",
+      "choices": {
+        "A": "The merge failed completely and the model has no useful knowledge",
+        "B": "The model's internal representations of its training history are fragmented post-merge, reflecting the structural changes from merging",
+        "C": "This is expected; models cannot be trusted to report their training histories",
+        "D": "You should retrain the model with explicit domain labels"
+      },
+      "answer": "B",
+      "rationale": "Inconsistent self-reporting post-merge reflects structural changes and mixed representations. A is too strong (task performance matters), C dismisses useful checks, and D assumes retraining is necessary."
+    },
+    {
+      "id": "q036",
+      "topic": "instruction_following",
+      "question": "In a multi-step task (e.g., 'First summarize, then extract key dates, then list them in order'), a merged model fails at step 3 despite succeeding at steps 1-2 in isolation. What is the most likely cause?",
+      "choices": {
+        "A": "The model's reasoning was overfit to single-step tasks during fine-tuning and lost compositional ability",
+        "B": "The model cannot handle multi-step contexts, and this is independent of merging",
+        "C": "Merged representation fragmentation accumulates errors across steps, and the model's context model weakened post-merge",
+        "D": "Step 3 requires a different model capability than steps 1-2, and one source model didn't train on it"
+      },
+      "answer": "C",
+      "rationale": "Error accumulation over steps indicates degraded internal representation continuity post-merge. A is a fine-tuning issue (separate from merge), B ignores merge effects, and D doesn't explain success in isolation."
+    },
+    {
+      "id": "q037",
+      "topic": "instruction_following",
+      "question": "A merged model performs well on instruction-following benchmarks but frequently ignores explicit constraints (e.g., 'Use exactly 50 words'). Why might merging cause this specific behavior?",
+      "choices": {
+        "A": "Constraint-following is orthogonal to merging and reflects base model limitations",
+        "B": "The merged model's weight distribution makes some constraint-encoding regions less accessible; behavioral constraints may have been encoded in different parameter regions across source models",
+        "C": "The model requires additional fine-tuning to learn constraint-following",
+        "D": "This is a sign of successful merging; general instruction-following is more important than arbitrary constraints"
+      },
+      "answer": "B",
+      "rationale": "Constraint encoding in different weight regions across source models creates fragmentation post-merge. A ignores merge effects on constraint access, C treats symptoms, and D prioritizes incorrectly."
+    },
+    {
+      "id": "q038",
+      "topic": "instruction_following",
+      "question": "You test a merged model on 'few-shot in-context learning' (providing examples in the prompt). Performance is much lower than on single-shot tasks. What should you investigate?",
+      "choices": {
+        "A": "Whether few-shot learning was included in source model fine-tuning and may have been lost in the merge",
+        "B": "Whether the merged model's context window is too short for few-shot examples",
+        "C": "Whether your benchmark is too difficult and should use fewer examples",
+        "D": "Whether few-shot learning depends on the base model, independent of merging"
+      },
+      "answer": "A",
+      "rationale": "Few-shot performance loss suggests source-model-specific learned mechanisms were disrupted. B would affect all context-dependent tasks, C avoids diagnosis, and D ignores merge effects on specialized behaviors."
+    },
+    {
+      "id": "q039",
+      "topic": "instruction_following",
+      "question": "A merged model follows simple instructions well but frequently fails on hierarchical or nested instructions (e.g., 'If X, then do [step 1, step 2]; else do [step 3]'). What does this indicate?",
+      "choices": {
+        "A": "The model's reasoning capability is fundamentally limited and cannot be fixed by merging",
+        "B": "Hierarchical instruction encoding requires precise weight alignments across multiple layers; merging disrupts these alignments selectively",
+        "C": "The model needs a separate reasoning module trained specifically for hierarchical logic",
+        "D": "Hierarchical instructions are too difficult for 6-10B models regardless of merging"
+      },
+      "answer": "B",
+      "rationale": "Hierarchical logic requires multi-layer coordination; merging creates local weight misalignments that compound. A overgeneralizes, C treats symptoms, and D contradicts empirical capability of similar-sized models."
+    },
+    {
+      "id": "q040",
+      "topic": "instruction_following",
+      "question": "After merging, a model shows degraded performance on 'reasoning chains' (multi-step logic requiring intermediate steps to be correct). What post-merge intervention would you try first?",
+      "choices": {
+        "A": "Full retraining on reasoning tasks to rebuild the degraded capability",
+        "B": "LoRA fine-tuning focused on intermediate-step representation quality to re-align multi-step reasoning pathways",
+        "C": "Switching to a different merge method, since reasoning is fundamentally incompatible with merged models",
+        "D": "Accepting degradation and using the model only for single-step tasks"
+      },
+      "answer": "B",
+      "rationale": "LoRA targets intermediate representation alignment without catastrophic forgetting, addressing the multi-step pathway disruption. A is expensive and risky, C is premature (merge method doesn't determine reasoning capability), and D abandons recovery attempts."
+    }
+  ]
+}

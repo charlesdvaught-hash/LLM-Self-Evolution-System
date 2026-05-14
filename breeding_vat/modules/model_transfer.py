@@ -18,9 +18,11 @@ logger = logging.getLogger(__name__)
 class ModelTransfer:
     """Transfer local models to experiment model zoo."""
     
-    def __init__(self, base_data_path: str = "breeding_vat/data"):
+    def __init__(self, base_data_path: str = "breeding_vat/data",
+                 experiment_manager=None):
         self.base_data_path = base_data_path
         self.global_model_zoo = os.path.join(base_data_path, "model_zoo")
+        self.experiment_manager = experiment_manager
         os.makedirs(self.global_model_zoo, exist_ok=True)
     
     def register_local_model(
@@ -84,6 +86,18 @@ class ModelTransfer:
                 json.dump(model_info, f, indent=2)
             
             logger.info(f"Model registered successfully: {safe_name}")
+
+            # Register to experiment if one is active
+            if experiment_id and self.experiment_manager:
+                # Find the experiment object from the manager
+                exp = self.experiment_manager.load_experiment(experiment_id)
+                if exp:
+                    self.experiment_manager.register_specimen(
+                        exp, safe_name, dest_path,
+                        source="local_upload",
+                        metadata=metadata or {}
+                    )
+
             return True, dest_path, model_info
         
         except Exception as e:

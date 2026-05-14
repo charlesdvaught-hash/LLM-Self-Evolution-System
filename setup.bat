@@ -1,15 +1,19 @@
 @echo off
 setlocal enabledelayedexpansion
 
-title The Breeding Vat - Setup & Repair
+title The Breeding Vat - Setup & Initialize
 
 echo.
 echo  ^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=
-echo    The Breeding Vat [Setup / Repair Utility]
+echo    The Breeding Vat [Initial Setup]
 echo  ^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=
 echo.
+echo This initializes the environment from scratch.
+echo - Builds Docker images (~10-15 min)
+echo - Downloads model specimens from HuggingFace (~15-30 min)
+echo.
 
-:: 1. Check for Docker
+REM Check for Docker
 echo [*] Checking for Docker Desktop...
 docker --version >nul 2>&1
 if %errorlevel% neq 0 (
@@ -22,22 +26,25 @@ if %errorlevel% neq 0 (
 echo [OK] Docker is installed.
 echo.
 
-:: 2. Full environment rebuild
-echo [*] Rebuilding Docker images...
-echo     (This ensures all images are up-to-date)
+REM Run setup
+echo [*] Starting setup...
 echo.
-python scripts/manager.py rebuild
+python scripts/manager.py setup
 
 if %errorlevel% neq 0 (
     echo.
-    echo [X] Build failed. Check Docker daemon and disk space.
+    echo [X] Setup failed.
+    echo     Possible causes:
+    echo       - Docker daemon not running
+    echo       - Insufficient disk space (need ~25GB total)
+    echo       - Network issues (model downloads)
     echo.
     pause
     exit /b 1
 )
 
 echo.
-echo [OK] All images built successfully!
+echo [OK] Setup complete!
 echo.
 echo Next: Run run.bat to start the Control Room
 echo.

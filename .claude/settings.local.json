@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"/mnt/c/Users/charl/Downloads/LLM-Self-Evolution-System-breeding-vat-init-15318746955656601650 \\(1\\)/LLM-Self-Evolution-System\" -maxdepth 2 -name \"CLAUDE.md\" 2>/dev/null)",
+      "Bash(python -c ' *)",
+      "Bash(select-string \"receipt_\")",
+      "WebFetch(domain:chatgpt.com)",
+      "Bash(python -m json.tool)",
+      "Bash(python)",
+      "Bash(python -m py_compile breeding_vat/modules/benchmark/receipt_runner.py)"
+    ]
+  }
+}

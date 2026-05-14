@@ -1,137 +1,354 @@
 {
   "metadata": {
-    "version": "1.0",
+    "version": "1.2",
     "description": "Knowledge base manifest for The Breeding Vat advisor system",
     "created": "2025-01-15",
-    "purpose": "Enables 0.8B advisor model to locate and reference documentation"
+    "updated": "2026-05-12",
+    "purpose": "Enables advisor models to locate and reference documentation"
   },
-  
+
   "guides": {
     "local_models": {
-      "path": "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
-      "description": "How to upload and use local models in experiments",
-      "keywords": ["upload", "local model", "transfer", "model zoo", "custom model"],
+      "path": "guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "description": "How to add models to the zoo — HuggingFace URL download or local path",
+      "keywords": ["upload", "local model", "transfer", "model zoo", "custom model", "huggingface", "download", "hf url"],
       "topics": ["local models", "getting started", "file upload"]
     },
     "local_models_detailed": {
-      "path": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "path": "guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
       "description": "Complete integration guide for local model feature with architecture",
       "keywords": ["local model", "integration", "architecture", "model transfer", "preservation"],
       "topics": ["local models", "advanced", "implementation"]
     },
     "merge_methods": {
-      "path": "docs/guides/FUSIONBENCH_QUICKSTART.md",
-      "description": "Quick overview of all 20+ merge methods available",
-      "keywords": ["merge", "FusionBench", "SLERP", "TIES", "DARE", "methods"],
-      "topics": ["merge methods", "quick reference", "FusionBench"]
+      "path": "guides/FUSIONBENCH_QUICKSTART.md",
+      "description": "Quick overview of all merge methods — MergeKit (SLERP, TIES, DARE, MoE) and FusionBench (RegMean, Git Rebasin, Frankenmerge, etc.)",
+      "keywords": ["merge", "FusionBench", "MergeKit", "SLERP", "TIES", "DARE", "regmean", "frankenmerge", "git rebasin", "methods"],
+      "topics": ["merge methods", "quick reference", "FusionBench", "MergeKit"]
     },
     "moe_advanced": {
-      "path": "docs/guides/MOE_GUIDE.md",
+      "path": "guides/MOE_GUIDE.md",
       "description": "Advanced guide for building Mixture-of-Experts models",
-      "keywords": ["MoE", "mixture of experts", "advanced", "layer-wise"],
+      "keywords": ["MoE", "mixture of experts", "advanced", "layer-wise", "routing"],
       "topics": ["advanced", "MoE", "specialized architectures"]
+    },
+    "advisor_kb": {
+      "path": "guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "description": "Advisor model's own reference for how to use the Breeding Vat system",
+      "keywords": ["advisor", "knowledge base", "reference", "how to use", "guide"],
+      "topics": ["advisor", "getting started", "reference"]
+    },
+    "finetuning": {
+      "path": "guides/FINETUNING_QUICKSTART.md",
+      "description": "QLoRA fine-tuning with Unsloth — dataset formats, config, VRAM table, interleaved evolution rounds",
+      "keywords": ["fine-tune", "finetuning", "QLoRA", "LoRA", "Unsloth", "training", "dataset", "alpaca", "sharegpt", "TRL"],
+      "topics": ["fine-tuning", "training", "advanced"]
     }
   },
 
   "reference": {
     "architecture": {
-      "path": "docs/reference/Architecture.md",
-      "description": "Complete system architecture, components, and design decisions",
-      "keywords": ["architecture", "system design", "components", "data flow", "pipeline"],
+      "path": "reference/Architecture.md",
+      "description": "Complete system architecture, containers, execution flow, and design decisions",
+      "keywords": ["architecture", "system design", "components", "data flow", "pipeline", "docker", "containers"],
       "topics": ["architecture", "system design", "technical foundation"]
     },
     "merge_inventory": {
-      "path": "docs/reference/MERGING_METHODS_INVENTORY.md",
-      "description": "Complete inventory of all 20+ merge methods with parameters",
-      "keywords": ["merge methods", "inventory", "parameters", "FusionBench", "MergeKit"],
-      "topics": ["merge methods", "reference", "parameters", "all methods"]
+      "path": "reference/MERGING_METHODS_INVENTORY.md",
+      "description": "Complete inventory of all merge methods with parameters — MergeKit 6 + FusionBench 9 + 11 advanced orthogonal toggles (layerwise alpha, top-K sparsify, sign consensus, attn/MLP filter, bench-weighted blend, dynamic coef, SLERP variants, LoRA rank prune, cosine filter, gaussian mutation, alt-layer injection, embedding mode)",
+      "keywords": ["merge methods", "inventory", "parameters", "FusionBench", "MergeKit", "all methods", "slerp", "ties", "dare", "regmean", "advanced toggles", "layerwise alpha", "topk sparsify", "sign consensus", "attn mlp filter", "bench weighted", "dynamic coef", "lora rank prune", "cosine filter", "gaussian mutation", "alt layer", "embedding mode", "nuslerp", "orthogonal toggles"],
+      "topics": ["merge methods", "reference", "parameters", "all methods", "advanced toggles", "orthogonal toggles"],
+      "anchors": {
+        "advanced_toggles": "## Advanced Orthogonal Toggles (Opt-in)",
+        "recipe_shape":     "### Recipe shape (`recipe['advanced']`)",
+        "routing_summary":  "### Routing summary",
+        "mutation":         "### Mutation behaviour"
+      }
     },
     "models": {
-      "path": "docs/reference/SPECIALIZED_MODELS.md",
-      "description": "Available base models for merging (Qwen, Mistral, Llama, etc.)",
-      "keywords": ["models", "base models", "available", "reasoning", "code", "math"],
+      "path": "reference/SPECIALIZED_MODELS.md",
+      "description": "Available base models for merging — Qwen, Mistral, Llama, DeepSeek, etc.",
+      "keywords": ["models", "base models", "available", "reasoning", "code", "math", "qwen", "mistral", "llama"],
       "topics": ["models", "base models", "specialized"]
     },
     "model_zoo": {
-      "path": "docs/reference/MODEL_ZOO.md",
+      "path": "reference/MODEL_ZOO.md",
       "description": "Model storage structure, preservation strategy, and management",
-      "keywords": ["model zoo", "storage", "preservation", "original models", "structure"],
+      "keywords": ["model zoo", "storage", "preservation", "original models", "structure", "registry"],
       "topics": ["model storage", "data organization", "preservation"]
     },
     "sae": {
-      "path": "docs/reference/SAE_GUIDE.md",
+      "path": "reference/SAE_GUIDE.md",
       "description": "Sparse Autoencoder layer introspection and analysis",
-      "keywords": ["SAE", "sparse autoencoder", "introspection", "layers", "features"],
+      "keywords": ["SAE", "sparse autoencoder", "introspection", "layers", "features", "capability"],
       "topics": ["SAE", "layer analysis", "introspection"]
     },
     "sae_optimization": {
-      "path": "docs/reference/SAE_MEMORY_OPTIMIZATION.md",
-      "description": "Memory-efficient SAE techniques for large models",
-      "keywords": ["SAE", "memory optimization", "VRAM", "efficiency", "streaming"],
+      "path": "reference/SAE_MEMORY_OPTIMIZATION.md",
+      "description": "Memory-efficient SAE techniques for large models on limited VRAM",
+      "keywords": ["SAE", "memory optimization", "VRAM", "efficiency", "streaming", "8gb"],
       "topics": ["SAE", "optimization", "memory management"]
+    },
+    "research_recipes": {
+      "path": "reference/RESEARCH_RECIPES.md",
+      "description": "Verified recipe templates from LLM merging research — TIES-DARE hybrid, Franken-Reasoning, SLERP safety valve, NegMerge de-biasing, MoE kitchen sink",
+      "keywords": ["recipes", "templates", "research", "dare-ties", "frankenmerge", "slerp", "negmerge", "moe", "strategy", "proven"],
+      "topics": ["merge methods", "recipes", "research", "best practices"]
+    },
+    "pipeline_expansion": {
+      "path": "reference/ADVISOR_PIPELINE_EXPANSION.md",
+      "description": "Dense technical reference for Breeding Vat internals — evolution workflow, merge toggles, engine backends, container paths",
+      "keywords": ["pipeline", "evolution", "workflow", "mergekit", "fusionbench", "taskrunner", "docker", "internals", "low_cpu_mem", "copy_tokenizer"],
+      "topics": ["architecture", "pipeline", "internals", "technical"]
+    },
+    "ai_concepts": {
+      "path": "reference/AI_CONCEPT_EXPLAINER.md",
+      "description": "Plain-English explainers for core AI/merging concepts used in Breeding Vat",
+      "keywords": ["concepts", "explainer", "what is", "explain", "beginner", "AI", "merging concepts"],
+      "topics": ["concepts", "explainer", "getting started"]
+    },
+    "best_practices": {
+      "path": "reference/BEST_BANG_FOR_BUCK.md",
+      "description": "High-impact pipeline improvements — VRAM reduction, speed, capability flags, DPO-lite, perplexity vibe-check, layer offloading",
+      "keywords": ["best practices", "vram", "speed", "efficiency", "optimization", "flash attention", "unsloth", "quantization", "layer offloading", "perplexity"],
+      "topics": ["optimization", "best practices", "efficiency", "hardware"]
+    },
+    "merge_resources": {
+      "path": "reference/MERGE_RESOURCES.md",
+      "description": "External resources, low-VRAM strategies, merge prediction heuristics — cosine similarity, Fisher information, activation variance",
+      "keywords": ["resources", "low vram", "8gb", "cpu merging", "model sharding", "cosine similarity", "fisher", "prediction", "heuristics"],
+      "topics": ["resources", "hardware", "low VRAM", "prediction"]
     }
   },
 
   "quick_answers": {
     "how_to_upload_model": {
-      "guide": "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
-      "reference": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
-      "keywords": ["upload", "local", "model", "how to"]
+      "guide": "guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "reference": "guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "keywords": ["upload", "local", "model", "how to", "add model", "huggingface", "download"]
+    },
+    "how_to_download_from_huggingface": {
+      "guide": "guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "keywords": ["huggingface", "download", "hf url", "paste link"]
+    },
+    "how_to_finetune": {
+      "guide": "guides/FINETUNING_QUICKSTART.md",
+      "keywords": ["fine-tune", "train", "qlora", "lora", "unsloth", "dataset"]
     },
     "merge_methods_overview": {
-      "guide": "docs/guides/FUSIONBENCH_QUICKSTART.md",
-      "reference": "docs/reference/MERGING_METHODS_INVENTORY.md",
-      "keywords": ["merge", "methods", "options", "available"]
+      "guide": "guides/FUSIONBENCH_QUICKSTART.md",
+      "reference": "reference/MERGING_METHODS_INVENTORY.md",
+      "keywords": ["merge", "methods", "options", "available", "which method"]
+    },
+    "proven_recipes": {
+      "reference": "reference/RESEARCH_RECIPES.md",
+      "keywords": ["recipe", "template", "proven", "research", "strategy", "what works"]
     },
     "system_architecture": {
-      "reference": "docs/reference/Architecture.md",
-      "keywords": ["architecture", "design", "components", "how it works"]
+      "reference": "reference/Architecture.md",
+      "keywords": ["architecture", "design", "components", "how it works", "system"]
     },
     "available_models": {
-      "reference": "docs/reference/SPECIALIZED_MODELS.md",
-      "guide": "docs/reference/MODEL_ZOO.md",
-      "keywords": ["models", "available", "base models", "options"]
+      "reference": "reference/SPECIALIZED_MODELS.md",
+      "guide": "reference/MODEL_ZOO.md",
+      "keywords": ["models", "available", "base models", "options", "what models"]
     },
     "sae_analysis": {
-      "guide": "docs/reference/SAE_GUIDE.md",
-      "reference": "docs/reference/SAE_MEMORY_OPTIMIZATION.md",
-      "keywords": ["SAE", "sparse autoencoder", "layer analysis"]
+      "guide": "reference/SAE_GUIDE.md",
+      "reference": "reference/SAE_MEMORY_OPTIMIZATION.md",
+      "keywords": ["SAE", "sparse autoencoder", "layer analysis", "introspection"]
     },
     "advanced_moe": {
-      "guide": "docs/guides/MOE_GUIDE.md",
-      "keywords": ["MoE", "mixture of experts", "advanced"]
+      "guide": "guides/MOE_GUIDE.md",
+      "keywords": ["MoE", "mixture of experts", "advanced", "routing"]
+    },
+    "vram_low_memory": {
+      "reference": "reference/BEST_BANG_FOR_BUCK.md",
+      "keywords": ["vram", "memory", "low vram", "8gb", "out of memory", "oom"]
+    },
+    "pipeline_internals": {
+      "reference": "reference/ADVISOR_PIPELINE_EXPANSION.md",
+      "keywords": ["pipeline", "internals", "how evolution works", "docker", "containers"]
     }
   },
 
   "search_index": {
     "local": [
-      "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
-      "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
-      "docs/reference/MODEL_ZOO.md"
+      "guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "reference/MODEL_ZOO.md"
     ],
     "merge": [
-      "docs/guides/FUSIONBENCH_QUICKSTART.md",
-      "docs/reference/MERGING_METHODS_INVENTORY.md"
+      "guides/FUSIONBENCH_QUICKSTART.md",
+      "reference/MERGING_METHODS_INVENTORY.md",
+      "reference/RESEARCH_RECIPES.md"
     ],
     "models": [
-      "docs/reference/SPECIALIZED_MODELS.md",
-      "docs/reference/MODEL_ZOO.md"
+      "reference/SPECIALIZED_MODELS.md",
+      "reference/MODEL_ZOO.md"
     ],
     "advanced": [
-      "docs/guides/MOE_GUIDE.md",
-      "docs/reference/SAE_GUIDE.md",
-      "docs/reference/SAE_MEMORY_OPTIMIZATION.md"
+      "guides/MOE_GUIDE.md",
+      "reference/SAE_GUIDE.md",
+      "reference/SAE_MEMORY_OPTIMIZATION.md",
+      "reference/BEST_BANG_FOR_BUCK.md"
     ],
     "architecture": [
-      "docs/reference/Architecture.md"
+      "reference/Architecture.md",
+      "reference/ADVISOR_PIPELINE_EXPANSION.md"
+    ],
+    "recipes": [
+      "reference/RESEARCH_RECIPES.md",
+      "guides/FUSIONBENCH_QUICKSTART.md"
+    ],
+    "optimization": [
+      "reference/BEST_BANG_FOR_BUCK.md",
+      "reference/MERGE_RESOURCES.md",
+      "reference/SAE_MEMORY_OPTIMIZATION.md"
+    ],
+    "finetune": [
+      "guides/FINETUNING_QUICKSTART.md"
+    ],
+    "concepts": [
+      "reference/AI_CONCEPT_EXPLAINER.md",
+      "guides/ADVISOR_KNOWLEDGE_BASE.md"
     ]
   },
 
   "advisor_prompts": {
-    "recipe_generation": "See 'merge_methods_overview' and 'available_models'",
-    "local_model_usage": "See 'how_to_upload_model'",
-    "system_understanding": "See 'system_architecture'",
-    "advanced_techniques": "See 'advanced_moe' and 'sae_analysis'",
-    "merge_recommendations": "See 'merge_methods_overview' then 'merge_inventory'"
+    "recipe_generation": "See 'merge_methods_overview', 'proven_recipes', and 'available_models'",
+    "local_model_usage": "See 'how_to_upload_model' or 'how_to_download_from_huggingface'",
+    "system_understanding": "See 'system_architecture' and 'pipeline_internals'",
+    "advanced_techniques": "See 'advanced_moe', 'sae_analysis', and 'vram_low_memory'",
+    "merge_recommendations": "See 'proven_recipes' then 'merge_inventory'",
+    "finetuning_guidance": "See 'how_to_finetune'",
+    "hardware_constraints": "See 'vram_low_memory' and 'merge_resources'"
   }
+}
+
+{
+  "dataset_name": "mergefusion_layer_aware_70_essays_3-6B",
+  "description": "Gap-filling essays: LoRA merging, quantization, safety, failure modes, and practical deployment topics.",
+  "essays": [
+    {
+      "essay_id": 76,
+      "title": "LoRA / Adapter Merging and Hybrid Fine-Tune + Merge Workflows",
+      "conversations": [
+        {
+          "from": "human",
+          "value": "How should an AI approach merging models that were fine-tuned with LoRA?"
+        },
+        {
+          "from": "gpt",
+          "value": "Merging LoRA adapters directly (via Task Arithmetic on deltas or specialized methods like LoRA-TIES) is often more efficient and stable than full-weight merging. For 3-6B: train strong LoRAs on scoped tasks with Unsloth → merge the adapters → optionally merge into base or keep as multi-LoRA. This preserves base capabilities better than full fine-tunes."
+        },
+        {
+          "from": "human",
+          "value": "Best hybrid pipeline: Unsloth LoRA → Merge → Post-tune?"
+        },
+        {
+          "from": "gpt",
+          "value": "Strong pattern: 1) Unsloth LoRA on individual experts, 2) Merge LoRAs or apply to shared base, 3) Light Unsloth LoRA on the merged result with mixed data. This is frequently more effective than pure merging or pure continued pre-training."
+        }
+      ]
+    },
+    {
+      "essay_id": 77,
+      "title": "Quantization-Aware Merging and Post-Merge Quantization",
+      "conversations": [
+        {
+          "from": "human",
+          "value": "How does quantization interact with merging strategies for 3-6B models?"
+        },
+        {
+          "from": "gpt",
+          "value": "Merging in FP16/BF16 then quantizing (GPTQ/AWQ) usually works best. Some methods like DARE help because they sparsify before quant. Test merged model sensitivity to 4-bit/8-bit — models with smoother weight distributions after merge quantize more cleanly. For FrankenMoE, quantize experts individually when possible."
+        }
+      ]
+    },
+    {
+      "essay_id": 78,
+      "title": "Safety, Alignment Drift, and Value Preservation in Merges",
+      "conversations": [
+        {
+          "from": "human",
+          "value": "How to detect and mitigate alignment degradation after merging?"
+        },
+        {
+          "from": "gpt",
+          "value": "Include a strong aligned base or aligned expert with higher weight. Monitor refusal rates, helpfulness/harmlessness scores, and distribution shift on safety prompts. Protect alignment-related layers (often mid-late) using contribution analysis. Post-merge Unsloth preference tuning (e.g. ORPO/KTO) is very effective for recovery."
+        }
+      ]
+    },
+    {
+      "essay_id": 79,
+      "title": "Common Failure Modes in 3-6B Merges and Recovery Tactics",
+      "conversations": [
+        {
+          "from": "human",
+          "value": "What are the most common failure modes when merging small models?"
+        },
+        {
+          "from": "gpt",
+          "value": "1) Catastrophic forgetting on general tasks, 2) Loss of coherence, 3) Increased hallucination, 4) Capability dilution from too many experts. Recovery: stronger base anchoring, layer-wise scaling, DARE, or fallback to fewer experts + post-merge Unsloth tuning."
+        }
+      ]
+    },
+    {
+      "essay_id": 80,
+      "title": "Custom Evaluation Suites for Personal AI Assistants",
+      "conversations": [
+        {
+          "from": "human",
+          "value": "How to build better evals for assistant-focused merged models?"
+        },
+        {
+          "from": "gpt",
+          "value": "Combine standard benchmarks with custom suites: multi-turn conversation quality, tool-use accuracy, instruction following, long-context retrieval, and human preference rankings. Use evolutionary search to optimize against your personal weighted eval set rather than public leaderboards."
+        }
+      ]
+    },
+    {
+      "essay_id": 81,
+      "title": "Memory and Compute Optimizations for Large-Scale Merging",
+      "conversations": [
+        {
+          "from": "human",
+          "value": "Practical memory-saving techniques during evolutionary merging on consumer hardware?"
+        },
+        {
+          "from": "gpt",
+          "value": "Use merged model sharding, CPU offloading (MergeKit), activation checkpointing, MERGE³ proxies, and 8-bit/4-bit inference during fitness evaluation. For FrankenMoE, quantize non-active experts."
+        }
+      ]
+    },
+    {
+      "essay_id": 82,
+      "title": "Reproducibility and Experiment Tracking for Merge Recipes",
+      "conversations": [
+        {
+          "from": "human",
+          "value": "How to make merge experiments reproducible and trackable?"
+        },
+        {
+          "from": "gpt",
+          "value": "Version models + LoRAs + exact YAML configs + random seeds + eval logs. Use tools like Weights & Biases or simple Git + JSON manifests. Store layer contribution stats and distribution fingerprints for each successful merge."
+        }
+      ]
+    },
+    {
+      "essay_id": 83,
+      "title": "Tool-Use, Agentic Capabilities, and Long-Context Merging",
+      "conversations": [
+        {
+          "from": "human",
+          "value": "Strategies for improving tool use and long-context in merged 3-6B models?"
+        },
+        {
+          "from": "gpt",
+          "value": "Merge tool-use specialists or long-context fine-tunes using targeted layer passthrough (often layers handling attention over distance). Post-merge Unsloth on synthetic tool-calling traces works extremely well. Balance with general capabilities to avoid brittleness."
+        }
+      ]
+    }
+  ]
 }

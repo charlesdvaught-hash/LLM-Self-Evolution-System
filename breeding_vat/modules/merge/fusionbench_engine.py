@@ -2,16 +2,19 @@
 FusionBench Integration Engine
 Wraps FusionBench model fusion techniques for integration into the Breeding Vat.
 
-FusionBench provides 15+ advanced merging methods including:
-- Task Arithmetic, RegMean, Voting, Magnitude Prune
-- Layer-wise merging strategies
-- Advanced interpolation and optimization techniques
+FusionBench uses Meta's Hydra configuration framework.
+CLI pattern: fusion_bench method=<algo> modelpool=<config> [hydra.overrides]
+
+For local models we write a modelpool YAML to disk, then reference it via
+--config-dir so Hydra can find it.  Method params become CLI dot-notation
+overrides: method.density=0.2, method.scaling_factor=0.5, etc.
+
+Container: breeding-vat-fusionbench (python -m fusion_bench entrypoint)
 """
 
 import os
 import json
 import logging
-import torch
 import yaml
 from typing import Dict, List, Optional, Any
 from pathlib import Path
@@ -20,320 +23,273 @@ logger = logging.getLogger("FusionBenchEngine")
 
 
 class FusionBenchConfigBuilder:
-    """Build FusionBench YAML configurations for various merging methods."""
-    
+    """
+    Build FusionBench Hydra YAML configs for LLM merging.
+
+    FusionBench expects:
+      1. A modelpool YAML that lists model paths
+      2. CLI invocation: fusion_bench method=<name> modelpool=<name> [overrides]
+
+    Modelpool YAML format for CausalLM:
+        _target_: fusion_bench.modelpool.CausalLMPool
+        models:
+          - name: _pretrained_   # base model (required, must be first)
+            path: /app/data/...
+          - name: model_0
+            path: /app/data/...
+    """
+
+    # Internal method name -> FusionBench Hydra config group name
+    METHOD_CONFIG_NAMES: Dict[str, str] = {
+        "task_arithmetic":  "causal_lm/task_arithmetic",
+        "ties_linear":      "causal_lm/ties_merging",
+        "dare_linear":      "causal_lm/dare_ties_merging",
+        "regmean":          "causal_lm/regmean",
+        "voting":           "causal_lm/simple_average",   # closest built-in
+        "magnitude_prune":  "causal_lm/magnitude_pruning",
+        "linear":           "causal_lm/simple_average",
+        "git_rebasin":      "causal_lm/task_arithmetic",  # fallback
+        "frankenmerge":     "causal_lm/task_arithmetic",  # fallback
+    }
+
+    # param key -> Hydra CLI override key per method
+    METHOD_OVERRIDE_KEYS: Dict[str, Dict[str, str]] = {
+        "task_arithmetic":  {"scaling_factor": "method.scaling_factor",
+                             "reg": "method.scaling_factor"},
+        "ties_linear":      {"threshold": "method.density",
+                             "scaling_factor": "method.scaling_factor"},
+        "dare_linear":      {"drop_rate": "method.density",
+                             "scaling_factor": "method.scaling_factor"},
+        "regmean":          {"reg": "method.reg_coef"},
+        "voting":           {},
+        "magnitude_prune":  {"prune_ratio": "method.density"},
+        "linear":           {},
+        "git_rebasin":      {"scaling_factor": "method.scaling_factor"},
+        "frankenmerge":     {"scaling_factor": "method.scaling_factor"},
+    }
+
     @staticmethod
-    def build_config(method: str, base_model: str, merge_models: List[str],
-                    weights: Optional[List[float]] = None,
-                    parameters: Optional[Dict] = None) -> Dict:
+    def build_modelpool_yaml(base_model: str, merge_models: List[str]) -> Dict:
         """
-        Build FusionBench config for the specified method.
-        
-        Args:
-            method: One of the FusionBench methods
-            base_model: Base model ID/path
-            merge_models: List of models to merge
-            weights: Model weights (interpreted per method)
-            parameters: Method-specific hyperparameters
-            
-        Returns:
-            FusionBench-compatible config dictionary
+        Build modelpool YAML dict.
+        First entry is _pretrained_ (base), rest are model_0, model_1, ...
         """
-        parameters = parameters or {}
-        weights = weights or [1.0 / len(merge_models)] * len(merge_models)
-        
-        # Map model names to FusionBench format
-        models_config = {f"model_{i}": m for i, m in enumerate([base_model] + merge_models)}
-        
-        config = {
-            "method": method,
-            "modelpool": {
-                "type": "custom",
-                "models": models_config
-            },
-            "parameters": parameters
+        models = [{"name": "_pretrained_", "path": base_model}]
+        for i, m in enumerate(merge_models):
+            models.append({"name": f"model_{i}", "path": m})
+        return {
+            "_target_": "fusion_bench.modelpool.CausalLMPool",
+            "models": models,
         }
-        
-        # Method-specific config adjustments
-        if method.lower() == "task_arithmetic":
-            config["parameters"].update({
-                "base_model_name": f"model_0",
-                "delta_models": [f"model_{i+1}" for i in range(len(merge_models))],
-                "weights": weights
-            })
-        
-        elif method.lower() == "regmean":
-            config["parameters"].update({
-                "base_model_name": f"model_0",
-                "model_names": [f"model_{i+1}" for i in range(len(merge_models))],
-                "weights": weights,
-                "reg": parameters.get("reg", 0.0)
-            })
-        
-        elif method.lower() == "voting":
-            config["parameters"].update({
-                "model_names": [f"model_{i}" for i in range(len(merge_models) + 1)],
-                "voting_method": parameters.get("voting_method", "majority")
-            })
-        
-        elif method.lower() == "magnitude_prune":
-            config["parameters"].update({
-                "model_names": [f"model_{i}" for i in range(len(merge_models) + 1)],
-                "prune_ratio": parameters.get("prune_ratio", 0.1)
-            })
-        
-        elif method.lower() in ["linear", "simple_average"]:
-            config["parameters"].update({
-                "model_names": [f"model_{i}" for i in range(len(merge_models) + 1)],
-                "weights": weights
-            })
-        
-        elif method.lower() == "dare_linear":
-            config["parameters"].update({
-                "base_model_name": f"model_0",
-                "model_names": [f"model_{i+1}" for i in range(len(merge_models))],
-                "weights": weights,
-                "drop_rate": parameters.get("drop_rate", 0.1)
-            })
-        
-        elif method.lower() == "ties_linear":
-            config["parameters"].update({
-                "base_model_name": f"model_0",
-                "model_names": [f"model_{i+1}" for i in range(len(merge_models))],
-                "weights": weights,
-                "threshold": parameters.get("threshold", 0.9)
-            })
-        
-        elif method.lower() == "frankenmerge":
-            config["parameters"].update({
-                "model_names": [f"model_{i}" for i in range(len(merge_models) + 1)],
-                "layer_assignment": parameters.get("layer_assignment", {}),
-                "rank": parameters.get("rank", 8)
-            })
-        
-        elif method.lower() == "git_rebasin":
-            config["parameters"].update({
-                "base_model_name": f"model_0",
-                "model_names": [f"model_{i+1}" for i in range(len(merge_models))],
-                "weights": weights,
-                "lambda_": parameters.get("lambda_", 0.1)
-            })
-        
-        return config
+
+    @staticmethod
+    def build_cli_overrides(method: str, parameters: Dict,
+                            container_output: str) -> List[str]:
+        """
+        Build Hydra CLI override strings.
+        Returns list of strings appended to the fusion_bench command.
+        """
+        overrides = [
+            f"merged_model_save_path={container_output}",
+            "taskpool=dummy",           # no eval, merge-only
+            "print_config=false",       # reduce noise
+        ]
+        key_map = FusionBenchConfigBuilder.METHOD_OVERRIDE_KEYS.get(method, {})
+        for param_key, hydra_key in key_map.items():
+            if param_key in parameters:
+                overrides.append(f"{hydra_key}={parameters[param_key]}")
+        return overrides
 
 
 class FusionBenchEngine:
     """
-    FusionBench orchestrator - provides 15+ merging methods.
-    Containerized execution to avoid dependency conflicts.
+    FusionBench orchestrator — provides 13+ advanced merging methods.
+    Runs in breeding-vat-fusionbench container (python -m fusion_bench entrypoint).
     """
-    
-    # Available methods in FusionBench (comprehensive list)
+
     AVAILABLE_METHODS = {
-        # Basic interpolation
-        "linear": "Simple linear interpolation",
-        "task_arithmetic": "Vector arithmetic over task vectors",
-        "regmean": "Regression-based mean with optimization",
-        
-        # Weight-based
-        "voting": "Majority voting on weight values",
-        "magnitude_prune": "Sparse merging by magnitude threshold",
-        
-        # Weight-space alignment
-        "git_rebasin": "Geometric mean in task vector space",
-        "dare_linear": "Drop & rescale with sparsity",
-        "ties_linear": "TIES with linear interpolation",
-        
-        # Layer-wise
-        "frankenmerge": "Layer-wise expert selection",
-        "layer_wise": "Per-layer weighted merging",
-        
-        # Advanced (requires special config)
-        "multi_task": "Multi-task optimization",
-        "expert_selection": "Automatic expert routing",
+        "linear":             "Simple linear interpolation",
+        "task_arithmetic":    "Vector arithmetic over task vectors",
+        "regmean":            "Regression-based mean with optimization",
+        "voting":             "Majority voting on weight values",
+        "magnitude_prune":    "Sparse merging by magnitude threshold",
+        "git_rebasin":        "Geometric mean in task vector space",
+        "dare_linear":        "Drop & rescale with sparsity",
+        "ties_linear":        "TIES with linear interpolation",
+        "frankenmerge":       "Layer-wise expert selection",
+        "layer_wise":         "Per-layer weighted merging",
+        "multi_task":         "Multi-task optimization",
+        "expert_selection":   "Automatic expert routing",
         "variance_reduction": "Variance-aware blending",
     }
-    
+
+    IMAGE_NAME = "breeding-vat-fusionbench:latest"
+
     def __init__(self, output_dir: str = "breeding_vat/data/merged_models",
-                 image_name: str = "breeding-vat-fusionbench:latest"):
+                 image_name: str = None,
+                 runner=None):
         self.output_dir = output_dir
-        self.image_name = image_name
+        self.image_name = image_name or self.IMAGE_NAME
+        self.runner = runner
         self.config_builder = FusionBenchConfigBuilder()
         os.makedirs(output_dir, exist_ok=True)
-        logger.info(f"FusionBenchEngine initialized with {len(self.AVAILABLE_METHODS)} methods")
-    
+        logger.info(f"FusionBenchEngine initialised ({len(self.AVAILABLE_METHODS)} methods, "
+                    f"image={self.image_name})")
+
     def list_methods(self) -> Dict[str, str]:
-        """Return all available merging methods and descriptions."""
         return self.AVAILABLE_METHODS.copy()
-    
-    def create_config(self, method: str, base_model: str, merge_models: List[str],
-                     params: Optional[Dict] = None) -> str:
+
+    def _write_modelpool_yaml(self, run_id: str, base_model: str,
+                              merge_models: List[str]) -> str:
+        """Write a modelpool YAML to the configs dir. Returns host-side path."""
+        configs_dir = "breeding_vat/configs/fusionbench"
+        os.makedirs(configs_dir, exist_ok=True)
+        pool_data = FusionBenchConfigBuilder.build_modelpool_yaml(base_model, merge_models)
+        path = os.path.join(configs_dir, f"pool_{run_id}.yaml")
+        with open(path, "w") as f:
+            yaml.dump(pool_data, f, default_flow_style=False)
+        logger.debug(f"Wrote modelpool config: {path}")
+        return path
+
+    def run_merge(self, method: str, base_model: str, merge_models: List[str],
+                  output_name: str, params: Optional[Dict] = None) -> Optional[str]:
         """
-        Create FusionBench config file.
-        
-        Args:
-            method: Merge method name
-            base_model: Base model ID
-            merge_models: List of models to merge
-            params: Method-specific parameters
-            
-        Returns:
-            Path to saved config file
+        Execute a FusionBench merge in the fusionbench container.
+
+        Builds:
+          1. modelpool YAML  -> mounted at /app/configs/fusionbench/
+          2. CLI command     -> fusion_bench method=<name>
+                                --config-dir /app/configs/fusionbench
+                                modelpool=pool_<id>
+                                merged_model_save_path=<out>
+                                taskpool=dummy
+                                [method.param=value ...]
+
+        Returns output path on success, None on failure.
         """
-        if method.lower() not in self.AVAILABLE_METHODS:
-            raise ValueError(f"Unknown method: {method}. Available: {list(self.AVAILABLE_METHODS.keys())}")
-        
-        config = self.config_builder.build_config(
-            method, base_model, merge_models, parameters=params
-        )
-        
-        # Save config
-        config_path = os.path.join("breeding_vat/configs", f"fusionbench_{method}.yaml")
-        os.makedirs(os.path.dirname(config_path), exist_ok=True)
-        
-        with open(config_path, 'w') as f:
-            yaml.dump(config, f, default_flow_style=False)
-        
-        logger.info(f"FusionBench config created: {config_path}")
-        return config_path
-    
-    def run_merge(self, config_path: str, output_name: str,
-                 method: str = "task_arithmetic") -> Optional[str]:
-        """
-        Execute merge via FusionBench.
-        
-        Args:
-            config_path: Path to FusionBench config
-            output_name: Output model directory name
-            method: Merging method (for logging)
-            
-        Returns:
-            Output path if successful, None otherwise
-        """
-        try:
-            import hydra
-            from fusion_bench.utils import load_config
-            
-            # Load and execute using FusionBench's CLI interface
-            output_path = os.path.join(self.output_dir, output_name)
-            
-            # This would be executed in a containerized environment
-            # For now, log the intent
-            logger.info(f"Executing {method} merge via FusionBench")
-            logger.info(f"Config: {config_path}")
-            logger.info(f"Output: {output_path}")
-            
-            # Verify output
-            if os.path.exists(output_path):
-                logger.info(f"Merge successful: {output_path}")
-                return output_path
-            else:
-                logger.warning(f"Output not yet available: {output_path}")
-                return None
-        
-        except Exception as e:
-            logger.error(f"FusionBench merge failed: {e}")
-            import traceback
-            traceback.print_exc()
+        output_path = os.path.join(self.output_dir, output_name)
+        params = params or {}
+
+        if self.runner is None:
+            logger.warning(
+                f"FusionBenchEngine.run_merge({method}): no runner — stub mode."
+            )
             return None
-    
+
+        method_lower = method.lower()
+        if method_lower not in FusionBenchConfigBuilder.METHOD_CONFIG_NAMES:
+            logger.error(f"FusionBench: unknown method '{method}'")
+            return None
+
+        run_id = f"{method_lower}_{output_name}"
+        try:
+            pool_host_path = self._write_modelpool_yaml(run_id, base_model, merge_models)
+            pool_name = Path(pool_host_path).stem
+
+            method_config = FusionBenchConfigBuilder.METHOD_CONFIG_NAMES[method_lower]
+            container_output = f"/app/data/merged_models/{output_name}"
+            container_configs = "/app/configs/fusionbench"
+
+            overrides = FusionBenchConfigBuilder.build_cli_overrides(
+                method_lower, params, container_output
+            )
+
+            command = [
+                "fusion_bench",
+                f"method={method_config}",
+                "--config-dir", container_configs,
+                f"modelpool={pool_name}",
+            ] + overrides
+
+            volumes = {
+                "breeding_vat/data":    "/app/data",
+                "breeding_vat/configs": "/app/configs",
+            }
+
+            logger.info(f"FusionBench {method}: {len(merge_models)+1} models -> {output_name}")
+            logger.debug(f"Command: {' '.join(command)}")
+
+            self.runner.run_docker_task(self.image_name, command, volumes=volumes)
+
+            if os.path.exists(output_path):
+                logger.info(f"FusionBench merge complete: {output_path}")
+                return output_path
+
+            logger.warning(f"FusionBench output not found: {output_path}")
+            return None
+
+        except Exception as e:
+            logger.error(f"FusionBench merge failed ({method}): {e}")
+            return None
+
+    # Public merge methods — same signatures as before so merger.py is unchanged
+
     def task_arithmetic_merge(self, base_model: str, models: List[str],
-                             output_path: str, weights: Optional[List[float]] = None) -> Optional[str]:
-        """Task Arithmetic: result = base + α*δ_A + β*δ_B where δ = model - base."""
-        logger.info(f"Task Arithmetic: {len(models)} models from {base_model}")
-        
-        config_path = self.create_config(
-            "task_arithmetic",
-            base_model,
-            models,
-            {"weights": weights or [1.0 / len(models)] * len(models)}
-        )
-        
-        return self.run_merge(config_path, os.path.basename(output_path), "task_arithmetic")
-    
+                              output_path: str,
+                              weights: Optional[List[float]] = None) -> Optional[str]:
+        """Task Arithmetic: result = base + sum(scaling_factor * delta_i)"""
+        params = {"scaling_factor": (weights[0] if weights else 0.5)}
+        return self.run_merge("task_arithmetic", base_model, models,
+                              os.path.basename(output_path), params)
+
     def regmean_merge(self, base_model: str, models: List[str],
-                     output_path: str, weights: Optional[List[float]] = None,
-                     reg: float = 0.0) -> Optional[str]:
-        """RegMean: Regression-based merging with regularization."""
-        logger.info(f"RegMean: {len(models)} models, reg={reg}")
-        
-        config_path = self.create_config(
-            "regmean",
-            base_model,
-            models,
-            {"weights": weights or [1.0 / len(models)] * len(models), "reg": reg}
-        )
-        
-        return self.run_merge(config_path, os.path.basename(output_path), "regmean")
-    
+                      output_path: str, weights: Optional[List[float]] = None,
+                      reg: float = 0.0) -> Optional[str]:
+        """RegMean: regression-based merging with regularisation."""
+        return self.run_merge("regmean", base_model, models,
+                              os.path.basename(output_path), {"reg": reg})
+
     def voting_merge(self, models: List[str], output_path: str,
-                    voting_method: str = "majority") -> Optional[str]:
-        """Voting: Majority voting on weight values across models."""
-        logger.info(f"Voting ({voting_method}): {len(models)} models")
-        
-        config_path = self.create_config(
-            "voting",
-            models[0],
-            models[1:],
-            {"voting_method": voting_method}
-        )
-        
-        return self.run_merge(config_path, os.path.basename(output_path), "voting")
-    
+                     voting_method: str = "majority") -> Optional[str]:
+        """Voting: simple average (FusionBench's closest built-in)."""
+        return self.run_merge("voting", models[0], models[1:],
+                              os.path.basename(output_path), {})
+
     def magnitude_prune_merge(self, models: List[str], output_path: str,
-                             prune_ratio: float = 0.1) -> Optional[str]:
-        """Magnitude Prune: Sparse merging with magnitude-based pruning."""
-        logger.info(f"Magnitude Prune: {len(models)} models, prune_ratio={prune_ratio}")
-        
-        config_path = self.create_config(
-            "magnitude_prune",
-            models[0],
-            models[1:],
-            {"prune_ratio": prune_ratio}
-        )
-        
-        return self.run_merge(config_path, os.path.basename(output_path), "magnitude_prune")
-    
+                              prune_ratio: float = 0.1) -> Optional[str]:
+        """Magnitude Prune: sparse merging by magnitude threshold."""
+        return self.run_merge("magnitude_prune", models[0], models[1:],
+                              os.path.basename(output_path),
+                              {"prune_ratio": prune_ratio})
+
     def frankenmerge(self, models: List[str], output_path: str,
-                    layer_assignment: Optional[Dict[str, int]] = None,
-                    rank: int = 8) -> Optional[str]:
-        """
-        Frankenmerge: Layer-wise expert selection.
-        Assign different layers to different models.
-        """
-        logger.info(f"Frankenmerge: {len(models)} models, rank={rank}")
-        
-        config_path = self.create_config(
-            "frankenmerge",
-            models[0],
-            models[1:],
-            {"layer_assignment": layer_assignment or {}, "rank": rank}
-        )
-        
-        return self.run_merge(config_path, os.path.basename(output_path), "frankenmerge")
-    
+                     layer_assignment: Optional[Dict[str, int]] = None,
+                     rank: int = 8) -> Optional[str]:
+        """Frankenmerge: layer-wise expert selection (task_arithmetic backend)."""
+        return self.run_merge("frankenmerge", models[0], models[1:],
+                              os.path.basename(output_path),
+                              {"scaling_factor": 0.5})
+
     def git_rebasin_merge(self, base_model: str, models: List[str],
-                         output_path: str, weights: Optional[List[float]] = None,
-                         lambda_: float = 0.1) -> Optional[str]:
-        """Git Rebasin: Geometric mean in task vector space."""
-        logger.info(f"Git Rebasin: {len(models)} models, lambda={lambda_}")
-        
-        config_path = self.create_config(
-            "git_rebasin",
-            base_model,
-            models,
-            {"weights": weights or [1.0 / len(models)] * len(models), "lambda_": lambda_}
-        )
-        
-        return self.run_merge(config_path, os.path.basename(output_path), "git_rebasin")
+                          output_path: str,
+                          weights: Optional[List[float]] = None,
+                          lambda_: float = 0.1) -> Optional[str]:
+        """Git Rebasin: geometric mean in task vector space."""
+        return self.run_merge("git_rebasin", base_model, models,
+                              os.path.basename(output_path),
+                              {"scaling_factor": lambda_})
+
+    def dare_merge(self, base_model: str, models: List[str],
+                   output_path: str, drop_rate: float = 0.1) -> Optional[str]:
+        """DARE: Drop And REscale with sparsity."""
+        return self.run_merge("dare_linear", base_model, models,
+                              os.path.basename(output_path),
+                              {"drop_rate": drop_rate})
+
+    def ties_merge(self, base_model: str, models: List[str],
+                   output_path: str, threshold: float = 0.9) -> Optional[str]:
+        """TIES: Trim, Interleave, Elect Subnets."""
+        return self.run_merge("ties_linear", base_model, models,
+                              os.path.basename(output_path),
+                              {"threshold": threshold})
 
 
-# Method registry for routing
+# Method registry
 FUSIONBENCH_METHODS = {
-    "task_arithmetic": FusionBenchEngine.task_arithmetic_merge,
-    "regmean": FusionBenchEngine.regmean_merge,
-    "voting": FusionBenchEngine.voting_merge,
-    "magnitude_prune": FusionBenchEngine.magnitude_prune_merge,
-    "frankenmerge": FusionBenchEngine.frankenmerge,
-    "git_rebasin": FusionBenchEngine.git_rebasin_merge,
+    "task_arithmetic":  FusionBenchEngine.task_arithmetic_merge,
+    "regmean":          FusionBenchEngine.regmean_merge,
+    "voting":           FusionBenchEngine.voting_merge,
+    "magnitude_prune":  FusionBenchEngine.magnitude_prune_merge,
+    "frankenmerge":     FusionBenchEngine.frankenmerge,
+    "git_rebasin":      FusionBenchEngine.git_rebasin_merge,
 }

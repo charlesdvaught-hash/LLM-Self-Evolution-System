@@ -16,3 +16,4 @@ click>=8.1.0
 jupyter>=1.0.0
 ipykernel>=6.26.0
 bitsandbytes>=0.41.0
+plotly>=5.18.0

@@ -1,0 +1,32 @@
+{
+  "id": "Reasoning_at_1B_scale_2026-05-14_190316",
+  "name": "Reasoning_at_1B_scale_2026-05-14_190316",
+  "goal": "Reasoning at 1B scale",
+  "base_models": [
+    "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen/Qwen2.5-1.5B-Instruct"
+  ],
+  "merge_methods": [
+    "slerp",
+    "ties"
+  ],
+  "num_cycles_planned": 2,
+  "created_at": "2026-05-14T19:03:16.504038",
+  "status": "completed",
+  "cycles_completed": 2,
+  "best_model": "mutant_c1_p1_o0",
+  "best_score": 0.8382115178940048,
+  "registered_models": [],
+  "paths": {
+    "root": "breeding_vat/data/experiments/Reasoning_at_1B_scale_2026-05-14_190316",
+    "models": "breeding_vat/data/experiments/Reasoning_at_1B_scale_2026-05-14_190316/merged_models",
+    "logs": "breeding_vat/data/experiments/Reasoning_at_1B_scale_2026-05-14_190316/logs",
+    "configs": "breeding_vat/data/experiments/Reasoning_at_1B_scale_2026-05-14_190316/configs",
+    "results": "breeding_vat/data/experiments/Reasoning_at_1B_scale_2026-05-14_190316/results",
+    "metadata": "breeding_vat/data/experiments/Reasoning_at_1B_scale_2026-05-14_190316/experiment.json",
+    "master_log": "breeding_vat/data/experiments/Reasoning_at_1B_scale_2026-05-14_190316/logs/master.log",
+    "benchmark_db": "breeding_vat/data/experiments/Reasoning_at_1B_scale_2026-05-14_190316/results/benchmarks.json",
+    "assay_cache": "breeding_vat/data/experiments/Reasoning_at_1B_scale_2026-05-14_190316/results/assay_reference_cache.json"
+  },
+  "completed_at": "2026-05-14T19:03:21.275948"
+}

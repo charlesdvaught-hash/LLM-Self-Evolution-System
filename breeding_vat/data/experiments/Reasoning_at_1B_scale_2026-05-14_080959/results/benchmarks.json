@@ -1,0 +1,191 @@
+{
+  "experiment_id": "Reasoning_at_1B_scale_2026-05-14_080959",
+  "goal": "Reasoning at 1B scale",
+  "base_models": [
+    "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen/Qwen2.5-1.5B-Instruct"
+  ],
+  "created_at": "2026-05-14T08:09:59.510819",
+  "cycles": [
+    {
+      "cycle": 1,
+      "timestamp": "2026-05-14T08:10:01.509080",
+      "models": [
+        {
+          "name": "mutant_c0_p1_o0",
+          "score": 0.7730572796197263,
+          "method": "ties",
+          "method_params": {},
+          "parents": [
+            "Qwen/Qwen2.5-1.5B-Instruct",
+            "Qwen/Qwen2.5-0.5B-Instruct"
+          ],
+          "benchmark": {
+            "score": 0.7730572796197263,
+            "perplexity": 12.5,
+            "arc_easy": 0.789723946286393,
+            "arc_challenge": 0.689723946286393,
+            "hellaswag": 0.839723946286393,
+            "winogrande": null,
+            "truthfulqa_mc": null,
+            "raw_scores": {
+              "arc_easy": 0.789723946286393,
+              "arc_challenge": 0.689723946286393,
+              "hellaswag": 0.839723946286393
+            },
+            "anomalies": [],
+            "timestamp": "2026-05-14T08:10:00.613726"
+          },
+          "anomalies": [],
+          "cycle": 1
+        },
+        {
+          "name": "mutant_c0_p1_o1",
+          "score": 0.6563015882464237,
+          "method": "slerp",
+          "method_params": {},
+          "parents": [
+            "Qwen/Qwen2.5-1.5B-Instruct",
+            "Qwen/Qwen2.5-0.5B-Instruct"
+          ],
+          "benchmark": {
+            "score": 0.6563015882464237,
+            "perplexity": 12.5,
+            "arc_easy": 0.6729682549130903,
+            "arc_challenge": 0.5729682549130903,
+            "hellaswag": 0.7229682549130904,
+            "winogrande": null,
+            "truthfulqa_mc": null,
+            "raw_scores": {
+              "arc_easy": 0.6729682549130903,
+              "arc_challenge": 0.5729682549130903,
+              "hellaswag": 0.7229682549130904
+            },
+            "anomalies": [],
+            "timestamp": "2026-05-14T08:10:01.112569"
+          },
+          "anomalies": [],
+          "cycle": 1
+        }
+      ],
+      "best_model": {
+        "name": "mutant_c0_p1_o0",
+        "score": 0.7730572796197263,
+        "parent": "Qwen/Qwen2.5-1.5B-Instruct",
+        "parents": [
+          "Qwen/Qwen2.5-1.5B-Instruct",
+          "Qwen/Qwen2.5-0.5B-Instruct"
+        ],
+        "method": "ties",
+        "method_params": {},
+        "benchmark": {
+          "score": 0.7730572796197263,
+          "perplexity": 12.5,
+          "arc_easy": 0.789723946286393,
+          "arc_challenge": 0.689723946286393,
+          "hellaswag": 0.839723946286393,
+          "winogrande": null,
+          "truthfulqa_mc": null,
+          "raw_scores": {
+            "arc_easy": 0.789723946286393,
+            "arc_challenge": 0.689723946286393,
+            "hellaswag": 0.839723946286393
+          },
+          "anomalies": [],
+          "timestamp": "2026-05-14T08:10:00.613726"
+        },
+        "anomalies": []
+      }
+    },
+    {
+      "cycle": 2,
+      "timestamp": "2026-05-14T08:10:03.698977",
+      "models": [
+        {
+          "name": "mutant_c1_p1_o0",
+          "score": 0.8740322792809536,
+          "method": "ties",
+          "method_params": {},
+          "parents": [
+            "mutant_c0_p1_o1",
+            "Qwen/Qwen2.5-1.5B-Instruct"
+          ],
+          "benchmark": {
+            "score": 0.8740322792809536,
+            "perplexity": 12.5,
+            "arc_easy": 0.8906989459476202,
+            "arc_challenge": 0.7906989459476202,
+            "hellaswag": 0.9406989459476203,
+            "winogrande": null,
+            "truthfulqa_mc": null,
+            "raw_scores": {
+              "arc_easy": 0.8906989459476202,
+              "arc_challenge": 0.7906989459476202,
+              "hellaswag": 0.9406989459476203
+            },
+            "anomalies": [],
+            "timestamp": "2026-05-14T08:10:02.803317"
+          },
+          "anomalies": [],
+          "cycle": 2
+        },
+        {
+          "name": "mutant_c1_p0_o1",
+          "score": 0.7772037727199366,
+          "method": "ties",
+          "method_params": {},
+          "parents": [
+            "mutant_c0_p1_o0",
+            "Qwen/Qwen2.5-0.5B-Instruct"
+          ],
+          "benchmark": {
+            "score": 0.7772037727199366,
+            "perplexity": 12.5,
+            "arc_easy": 0.7938704393866032,
+            "arc_challenge": 0.6938704393866032,
+            "hellaswag": 0.8438704393866032,
+            "winogrande": null,
+            "truthfulqa_mc": null,
+            "raw_scores": {
+              "arc_easy": 0.7938704393866032,
+              "arc_challenge": 0.6938704393866032,
+              "hellaswag": 0.8438704393866032
+            },
+            "anomalies": [],
+            "timestamp": "2026-05-14T08:10:02.302812"
+          },
+          "anomalies": [],
+          "cycle": 2
+        }
+      ],
+      "best_model": {
+        "name": "mutant_c1_p1_o0",
+        "score": 0.8740322792809536,
+        "parent": "mutant_c0_p1_o1",
+        "parents": [
+          "mutant_c0_p1_o1",
+          "Qwen/Qwen2.5-1.5B-Instruct"
+        ],
+        "method": "ties",
+        "method_params": {},
+        "benchmark": {
+          "score": 0.8740322792809536,
+          "perplexity": 12.5,
+          "arc_easy": 0.8906989459476202,
+          "arc_challenge": 0.7906989459476202,
+          "hellaswag": 0.9406989459476203,
+          "winogrande": null,
+          "truthfulqa_mc": null,
+          "raw_scores": {
+            "arc_easy": 0.8906989459476202,
+            "arc_challenge": 0.7906989459476202,
+            "hellaswag": 0.9406989459476203
+          },
+          "anomalies": [],
+          "timestamp": "2026-05-14T08:10:02.803317"
+        },
+        "anomalies": []
+      }
+    }
+  ]
+}

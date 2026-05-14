@@ -1,0 +1,14 @@
+base_model: mutant_c0_p0_o1
+merge_method: slerp
+parameters:
+  t: 0.5
+slices:
+- sources:
+  - layer_range:
+    - 0
+    - 32
+    model: mutant_c0_p0_o1
+  - layer_range:
+    - 0
+    - 32
+    model: Qwen/Qwen2.5-0.5B-Instruct

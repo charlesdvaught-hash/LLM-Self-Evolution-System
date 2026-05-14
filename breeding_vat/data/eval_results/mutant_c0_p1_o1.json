@@ -1,0 +1,1 @@
+{"results": {"arc_easy": {"acc": 0.5091433356111699}, "arc_challenge": {"acc": 0.4091433356111699}, "hellaswag": {"acc": 0.5591433356111699}}, "mock": true}

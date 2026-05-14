@@ -1,646 +1,4725 @@
 {
-  "version": "2.0",
-  "last_updated": "2025-01-15",
-  "description": "Complete file inventory of The Breeding Vat - every file, its purpose, and dependencies",
-  "repository_root": "breeding-vat",
-
-  "root_level": {
-    "setup.bat": {
-      "type": "batch script",
-      "purpose": "One-click environment setup. Builds Docker images, initializes directories, verifies Docker",
-      "executable": true,
-      "calls": ["scripts/manager.py rebuild"],
-      "outputs": ["Docker images built"],
-      "entry_point": true
+  "containers": [],
+  "entrypoints": [
+    {
+      "source": "docker/Dockerfile.fusionbench",
+      "image_name": "breeding-vat-fusionbench",
+      "base_image": "pytorch/pytorch:2.1.0-cuda12.1-runtime-ubuntu22.04",
+      "workdir": "/app",
+      "entrypoint": "[\"python\", \"-m\", \"fusion_bench\"]",
+      "cmd": "[\"--help\"]",
+      "expose": null
     },
-    "run.bat": {
-      "type": "batch script",
-      "purpose": "One-click launch. Checks Docker running, launches Streamlit UI via manager.py",
-      "executable": true,
-      "calls": ["scripts/manager.py run"],
-      "outputs": ["UI on http://localhost:8501"],
-      "entry_point": true
+    {
+      "source": "docker/Dockerfile.ui",
+      "image_name": "breeding-vat-ui",
+      "base_image": "python:3.10-slim",
+      "workdir": "/app",
+      "entrypoint": null,
+      "cmd": "[\"streamlit\", \"run\", \"/app/breeding_vat/ui/app.py\", \"--server.address=0.0.0.0\"]",
+      "expose": "8501 8888"
     },
-    "status.bat": {
-      "type": "batch script",
-      "purpose": "Check system status - Docker, images, containers",
-      "executable": true
+    {
+      "source": "docker/Dockerfile.finetune",
+      "image_name": "breeding-vat-finetune",
+      "base_image": "nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04",
+      "workdir": "/app",
+      "entrypoint": "[\"python\", \"/app/scripts/finetune_runner.py\"]",
+      "cmd": null,
+      "expose": null
     },
-    "README.md": {
-      "type": "documentation",
-      "purpose": "Top-level project overview, features, quick start",
-      "audience": ["users", "developers"],
-      "linked_by": ["docs/index.md"]
+    {
+      "source": "docker/Dockerfile.eval",
+      "image_name": "breeding-vat-eval",
+      "base_image": "python:3.10-slim",
+      "workdir": "/app",
+      "entrypoint": "[\"lm_eval\"]",
+      "cmd": null,
+      "expose": null
     },
-    "LICENSE": {
-      "type": "license",
-      "purpose": "Software license (Apache 2.0 or similar)",
-      "audience": ["legal"]
+    {
+      "source": "docker/Dockerfile.mergekit",
+      "image_name": null,
+      "base_image": "python:3.11-slim",
+      "workdir": "/app",
+      "entrypoint": "[\"fusioncore\"]",
+      "cmd": "[\"--help\"]",
+      "expose": null
     },
-    "requirements.txt": {
-      "type": "configuration",
-      "purpose": "Python package dependencies for local development",
-      "packages": ["streamlit", "torch", "transformers", "pyyaml"],
-      "note": "Most packages installed in Docker images, not locally"
+    {
+      "source": "docker/Dockerfile.sae",
+      "image_name": "breeding-vat-sae",
+      "base_image": "python:3.10-slim",
+      "workdir": "/app",
+      "entrypoint": "[\"python\"]",
+      "cmd": null,
+      "expose": null
     },
-    ".gitignore": {
-      "type": "configuration",
-      "purpose": "Git ignore rules - excludes models, databases, cache",
-      "size": "6.5 KB",
-      "excludes": ["*.db", "*.bin", "*.safetensors", "__pycache__", ".venv"]
-    },
-    ".gitattributes": {
-      "type": "configuration",
-      "purpose": "Git line ending configuration for cross-platform compatibility",
-      "size": "3.3 KB"
-    },
-    ".env.template": {
-      "type": "configuration",
-      "purpose": "Template for environment variables (optional, rarely used)",
-      "example_vars": ["HUGGINGFACE_TOKEN"]
-    },
-    ".streamlit": {
-      "type": "directory",
-      "purpose": "Streamlit configuration",
-      "contents": {
-        "config.toml": {
-          "type": "configuration",
-          "purpose": "Streamlit UI settings (theme, logging, etc)"
-        }
-      }
-    },
-    "AI_KNOWLEDGE_BASE.md": {
-      "type": "documentation",
-      "purpose": "Reference for AI assistants - system overview, architecture, troubleshooting",
-      "audience": ["ai", "developers"],
-      "deprecated_note": "Superseded by Map.json (this file) and Architecture.md - kept for reference"
+    {
+      "source": "docker/Dockerfile.merge",
+      "image_name": "breeding-vat-merge",
+      "base_image": "python:3.10-slim",
+      "workdir": "/app",
+      "entrypoint": "[\"mergekit-yaml\"]",
+      "cmd": null,
+      "expose": null
     }
-  },
-
-  "breeding_vat": {
-    "path": "breeding_vat/",
-    "type": "main application package",
-    "purpose": "Core application logic - UI, evolution engine, modules",
-
-    "__init__.py": {
-      "type": "python package",
-      "purpose": "Package marker"
-    },
-
-    "ui": {
-      "path": "breeding_vat/ui/",
-      "purpose": "Streamlit user interface",
-      "app.py": {
-        "type": "python module",
-        "size": "30+ KB",
-        "purpose": "Main Streamlit UI - tabs, sidebars, controls",
-        "recent_changes": "Added FusionBench method selection, parameter controls, Methods reference tab",
-        "imports": [
-          "breeding_vat.modules.merge.advisor",
-          "breeding_vat.modules.merge.evolution",
-          "breeding_vat.modules.merge.merger",
-          "breeding_vat.modules.sae.scoped_analyzer",
-          "breeding_vat.modules.experiment_manager",
-          "breeding_vat.modules.evolution.evolution_with_logging",
-          "breeding_vat.orchestrator.runner"
-        ],
-        "classes": ["None - single-file Streamlit app"],
-        "key_functions": [
-          "init_system() - setup runner and experiment manager",
-          "get_merging_methods() - returns 20+ methods from AdvancedMerger",
-          "update_progress() - real-time UI updates",
-          "log_to_ui() - timestamped logging"
-        ]
-      }
-    },
-
-    "modules": {
-      "path": "breeding_vat/modules/",
-      "purpose": "Functional modules - evolution, merging, evaluation, analysis",
-
-      "experiment_manager.py": {
-        "type": "python module",
-        "purpose": "Create/load/manage experiments, logging, model metadata",
-        "classes": ["ExperimentManager"],
-        "key_methods": [
-          "create_experiment() - new dated experiment folder",
-          "load_experiment() - resume from existing",
-          "list_experiments() - show all available",
-          "log_cycle() - record cycle results",
-          "save_model() - save merged model + metadata",
-          "_save_metadata() - persist experiment.json"
-        ],
-        "outputs": "breeding_vat/data/experiments/{timestamp}/"
-      },
-
-      "merge": {
-        "path": "breeding_vat/modules/merge/",
-        "purpose": "Model merging strategies and orchestration",
-
-        "fusionbench_engine.py": {
-          "type": "python module",
-          "size": "13 KB",
-          "recent": "NEW - FusionBench integration",
-          "purpose": "FusionBench wrapper - 13+ merging methods",
-          "classes": [
-            "FusionBenchConfigBuilder - generates YAML configs",
-            "FusionBenchEngine - 13+ methods (Task Arithmetic, RegMean, Voting, etc)"
-          ],
-          "methods": {
-            "task_arithmetic_merge": "Result = base + α*δ_A + β*δ_B",
-            "regmean_merge": "Regression-based mean with optimization",
-            "voting_merge": "Majority voting on weight values",
-            "magnitude_prune_merge": "Sparse by magnitude threshold",
-            "frankenmerge": "Layer-wise expert selection",
-            "git_rebasin_merge": "Geometric mean in task vector space"
-          }
-        },
-
-        "merger.py": {
-          "type": "python module",
-          "size": "8.5 KB",
-          "recent": "UPDATED - routes to both MergeKit and FusionBench",
-          "purpose": "Main merging interface - dispatches to engines",
-          "classes": ["AdvancedMerger"],
-          "key_methods": [
-            "slerp_merge, ties_merge, dare_merge (MergeKit)",
-            "task_arithmetic_merge, regmean_merge, voting_merge (FusionBench)",
-            "get_available_methods() - returns all 20+ methods"
-          ],
-          "backends": ["MergeKit (7 methods)", "FusionBench (13+ methods)"]
-        },
-
-        "mergekit_engine.py": {
-          "type": "python module",
-          "purpose": "MergeKit wrapper - classical interpolation methods",
-          "classes": [
-            "MergekitConfigBuilder - generates merge configs",
-            "MergekitEngine - orchestrates merges via Docker"
-          ],
-          "methods": {
-            "slerp": "Spherical linear interpolation",
-            "ties": "Trim, Interleave, Elect Subnets",
-            "dare": "Drop And REscale",
-            "task_arithmetic": "Vector arithmetic",
-            "moe": "Mixture of Experts",
-            "rmm": "Resurrection by Majority Merging"
-          }
-        },
-
-        "advisor.py": {
-          "type": "python module",
-          "purpose": "AI advisor (0.8B model) - generates merge recipes",
-          "classes": ["MergeAdvisor"],
-          "model": "Qwen/Qwen2.5-0.8B-Instruct",
-          "key_methods": [
-            "generate_recipe() - LLM suggests merge strategy"
-          ]
-        },
-
-        "evolution.py": {
-          "type": "python module",
-          "purpose": "Core evolution algorithm - merge/eval/cull loop",
-          "classes": ["EvolutionEngine"],
-          "key_methods": [
-            "run_waterfall() - main loop: repeat {merge, eval, cull}"
-          ]
-        },
-
-        "pipeline.py": {
-          "type": "python module",
-          "purpose": "Multi-stage merge pipelines (advanced feature)"
-        },
-
-        "task_arithmetic.py": {
-          "type": "python module",
-          "purpose": "Task arithmetic helper utilities"
-        }
-      },
-
-      "evolution": {
-        "path": "breeding_vat/modules/evolution/",
-        "purpose": "Evolution pipeline with logging and introspection",
-
-        "evolution_with_logging.py": {
-          "type": "python module",
-          "purpose": "Wraps EvolutionEngine with logging, progress callbacks",
-          "classes": ["EvolutionWithLogging"],
-          "key_methods": [
-            "run_waterfall() - same as EvolutionEngine but with callbacks and logging"
-          ]
-        },
-
-        "adaptive_introspection.py": {
-          "type": "python module",
-          "purpose": "SAE introspection during evolution (research feature)"
-        },
-
-        "creativity_slider.py": {
-          "type": "python module",
-          "purpose": "User control over exploration vs exploitation"
-        }
-      },
-
-      "benchmark": {
-        "path": "breeding_vat/modules/benchmark/",
-        "purpose": "Model evaluation and fitness scoring",
-
-        "prediction_engine.py": {
-          "type": "python module",
-          "purpose": "Predict model fitness without full evaluation (future feature)"
-        },
-
-        "fusion_bench_wrapper.py": {
-          "type": "python module",
-          "purpose": "Wrapper for FusionBench evaluation"
-        }
-      },
-
-      "sae": {
-        "path": "breeding_vat/modules/sae/",
-        "purpose": "Sparse Autoencoder analysis - layer-wise introspection",
-
-        "scoped_analyzer.py": {
-          "type": "python module",
-          "size": "10+ KB",
-          "purpose": "SAE analysis with streaming memory optimization",
-          "classes": ["SAEScopedAnalyzer"],
-          "key_methods": [
-            "analyze_self() - analyze model layers for specialized features",
-            "Memory efficient for models 0.5B-70B"
-          ]
-        }
-      },
-
-      "train": {
-        "path": "breeding_vat/modules/train/",
-        "purpose": "Fine-tuning and LoRA training (future expansion)",
-
-        "trainer.py": {
-          "type": "python module",
-          "purpose": "Training orchestration using PEFT/LoRA"
-        }
-      }
-    },
-
-    "orchestrator": {
-      "path": "breeding_vat/orchestrator/",
-      "purpose": "Container and task orchestration",
-
-      "runner.py": {
-        "type": "python module",
-        "size": "15+ KB",
-        "purpose": "Docker task runner - launches containers, manages execution",
-        "classes": ["TaskRunner"],
-        "key_methods": [
-          "run_docker_task() - execute command in specific container",
-          "with_volumes() - mount host directories",
-          "with_gpus() - GPU allocation"
-        ]
-      }
-    },
-
-    "data": {
-      "path": "breeding_vat/data/",
-      "type": "generated at runtime",
-      "purpose": "Data storage - models, experiments, databases",
-
-      "schema.sql": {
-        "type": "database schema",
-        "purpose": "SQLite schema for breeding.db",
-        "tables": [
-          "experiments - metadata, goals, cycles",
-          "models - merged models, lineage, scores",
-          "recipes - merge configs and parameters",
-          "sae_discoveries - layer features"
-        ]
-      },
-
-      "breeding.db": {
-        "type": "sqlite database",
-        "generated": true,
-        "purpose": "Experiment lineage and genealogy tracking",
-        "schema_from": "schema.sql"
-      },
-
-      "merged_models": {
-        "type": "directory",
-        "generated": true,
-        "purpose": "Cached merged model weights and configs"
-      },
-
-      "eval_results": {
-        "type": "directory",
-        "generated": true,
-        "purpose": "Evaluation outputs (benchmarks, scores)"
-      },
-
-      "sae_analysis": {
-        "type": "directory",
-        "generated": true,
-        "purpose": "SAE layer analysis results"
-      },
-
-      "experiments": {
-        "type": "directory",
-        "generated": true,
-        "purpose": "Dated experiment folders (YYYY-MM-DD_HHMMSS)",
-        "structure": {
-          "experiment.json": "Metadata - goal, status, best_score",
-          "merged_models/": "Generated models for this experiment",
-          "configs/": "Merge recipes (YAML)",
-          "logs/": "master.log - full timeline",
-          "results/": "benchmarks.json - scores per cycle"
-        }
-      },
-
-      ".gitkeep": {
-        "type": "directory marker",
-        "purpose": "Preserve empty directories in git"
-      }
-    },
-
-    "configs": {
-      "path": "breeding_vat/configs/",
-      "type": "generated at runtime",
-      "generated": true,
-      "purpose": "Merge configuration files (YAML)",
-      "examples": [
-        "mergekit_slerp.yaml",
-        "mergekit_ties.yaml",
-        "fusionbench_task_arithmetic.yaml"
+  ],
+  "execution_paths": [
+    {
+      "entrypoint": "\"breeding_vat/ui/app.py",
+      "chain": [
+        "\"breeding_vat/ui/app.py"
       ]
     }
-  },
-
-  "docker": {
-    "path": "docker/",
-    "type": "container definitions",
-    "purpose": "Docker images for isolated components",
-
-    "Dockerfile.ui": {
-      "type": "docker image definition",
-      "builds_image": "breeding-vat-ui:latest",
-      "purpose": "Streamlit UI container",
-      "base": "python:3.11-slim",
-      "installs": ["streamlit", "torch", "transformers", "streamlit-option-menu"],
-      "mounts": ["/var/run/docker.sock", "/app"],
-      "ports": ["8501"],
-      "entrypoint": "streamlit run /app/breeding_vat/ui/app.py"
+  ],
+  "modules": [
+    {
+      "name": "breeding_vat.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/__init__.py",
+      "imports": [],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
     },
-
-    "Dockerfile.merge": {
-      "type": "docker image definition",
-      "builds_image": "breeding-vat-merge:latest",
-      "note": "This is the ACTUAL merge image (mergekit was old name)",
-      "purpose": "Model merging - MergeKit + FusionBench",
-      "base": "python:3.10-slim",
-      "installs": [
+    {
+      "name": "breeding_vat.cli",
+      "unused_definitions": [],
+      "path": "breeding_vat/cli.py",
+      "imports": [
+        "json",
+        "sys",
+        "breeding_vat.modules.recipe_executor.RecipeExecutor",
+        "argparse"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "cmd_list_recipes",
+          "cmd_validate_recipe",
+          "cmd_describe_recipe",
+          "cmd_execute_recipe",
+          "main"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.configs.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/configs/__init__.py",
+      "imports": [],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.modules.model_path_resolver",
+      "unused_definitions": [
+        "is_local_model",
+        "is_hf_model",
+        "ModelPathResolver",
+        "__init__",
+        "resolve"
+      ],
+      "path": "breeding_vat/modules/model_path_resolver.py",
+      "imports": [
+        "pathlib.Path",
+        "os",
+        "typing.Optional",
+        "typing.Tuple"
+      ],
+      "definitions": {
+        "classes": [
+          "ModelPathResolver"
+        ],
+        "functions": [
+          "__init__",
+          "resolve",
+          "_resolve_hf_model",
+          "is_local_model",
+          "is_hf_model"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.model_zoo",
+      "unused_definitions": [
+        "get_models_by_tag",
+        "add_local_model",
+        "__init__",
+        "remove_local_model",
+        "get_model_display_name",
+        "get_models_by_type",
+        "search_models",
+        "GlobalModelZoo"
+      ],
+      "path": "breeding_vat/modules/model_zoo.py",
+      "imports": [
+        "re",
+        "logging",
+        "os",
+        "typing.Dict",
+        "typing.Optional",
+        "typing.Tuple",
+        "pathlib.Path",
+        "datetime.datetime",
+        "json",
+        "typing.List",
+        "shutil"
+      ],
+      "definitions": {
+        "classes": [
+          "GlobalModelZoo"
+        ],
+        "functions": [
+          "__init__",
+          "_load_registry",
+          "_save_registry",
+          "add_local_model",
+          "list_all_models",
+          "get_models_by_type",
+          "get_models_by_tag",
+          "search_models",
+          "remove_local_model",
+          "get_model_display_name",
+          "_validate_model_path",
+          "_sanitize_name",
+          "_get_dir_size"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.experiment_manager",
+      "unused_definitions": [
+        "save_config",
+        "register_specimen",
+        "log_cycle",
+        "list_experiments",
+        "__init__",
+        "create_experiment",
+        "ExperimentManager",
+        "save_model",
+        "get_specimens",
+        "load_experiment",
+        "finalize_experiment"
+      ],
+      "path": "breeding_vat/modules/experiment_manager.py",
+      "imports": [
+        "logging",
+        "os",
+        "pathlib.Path",
+        "typing.Dict",
+        "datetime.datetime",
+        "typing.Optional",
+        "sqlite3",
+        "json",
+        "typing.List",
+        "shutil"
+      ],
+      "definitions": {
+        "classes": [
+          "ExperimentManager"
+        ],
+        "functions": [
+          "__init__",
+          "create_experiment",
+          "load_experiment",
+          "list_experiments",
+          "log_cycle",
+          "save_model",
+          "save_config",
+          "register_specimen",
+          "get_specimens",
+          "finalize_experiment",
+          "_save_metadata",
+          "_init_log_file",
+          "_init_benchmark_db"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/modules/__init__.py",
+      "imports": [],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.modules.model_transfer",
+      "unused_definitions": [
+        "validate_model_path",
+        "__init__",
+        "list_local_models",
+        "register_local_model",
+        "get_model_path",
+        "ModelTransfer"
+      ],
+      "path": "breeding_vat/modules/model_transfer.py",
+      "imports": [
+        "re",
+        "pathlib.Path",
+        "logging",
+        "os",
+        "typing.Dict",
+        "typing.Optional",
+        "typing.Tuple",
+        "datetime.datetime",
+        "json",
+        "shutil"
+      ],
+      "definitions": {
+        "classes": [
+          "ModelTransfer"
+        ],
+        "functions": [
+          "__init__",
+          "register_local_model",
+          "validate_model_path",
+          "list_local_models",
+          "get_model_path",
+          "_sanitize_name",
+          "_get_dir_size"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.recipe_executor",
+      "unused_definitions": [
+        "build_finetuning_config",
+        "build_assay_config",
+        "describe",
+        "save_recipe",
+        "__init__",
+        "validate",
+        "build_evolution_config",
+        "RecipeExecutor",
+        "merge_recipe",
+        "load_recipe",
+        "list_recipes"
+      ],
+      "path": "breeding_vat/modules/recipe_executor.py",
+      "imports": [
+        "dataclasses.dataclass",
+        "os",
+        "typing.Optional",
+        "typing.Dict",
+        "typing.Tuple",
+        "logging",
+        "json",
+        "typing.List",
+        "typing.Any",
+        "copy"
+      ],
+      "definitions": {
+        "classes": [
+          "RecipeValidationResult",
+          "RecipeExecutor"
+        ],
+        "functions": [
+          "__init__",
+          "load_template",
+          "load_recipe",
+          "save_recipe",
+          "list_recipes",
+          "validate",
+          "build_evolution_config",
+          "build_advanced_config",
+          "build_finetuning_config",
+          "build_assay_config",
+          "merge_recipe",
+          "describe",
+          "deep_merge"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.merge.recipe_validator",
+      "unused_definitions": [
+        "check",
+        "__init__",
+        "RecipeValidator"
+      ],
+      "path": "breeding_vat/modules/merge/recipe_validator.py",
+      "imports": [
+        "re",
+        "logging",
+        "typing.Optional",
+        "typing.Dict",
+        "typing.List",
+        "typing.Any"
+      ],
+      "definitions": {
+        "classes": [
+          "ValidationError",
+          "RecipeValidator"
+        ],
+        "functions": [
+          "__init__",
+          "validate",
+          "check",
+          "_check_required_fields",
+          "_check_method",
+          "_check_string_fields",
+          "_check_parameters",
+          "_check_advanced",
+          "_check_weights"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.merge.pipeline",
+      "unused_definitions": [
+        "execute",
+        "save_config",
+        "__init__",
+        "create_code_pipeline",
+        "create_balanced_pipeline",
+        "load_config",
+        "create_reasoning_pipeline"
+      ],
+      "path": "breeding_vat/modules/merge/pipeline.py",
+      "imports": [
+        "os",
+        "logging",
+        "typing.Dict",
+        "typing.Optional",
+        "datetime.datetime",
+        "traceback",
+        "json",
+        "typing.List",
+        "typing.Any",
+        "breeding_vat.modules.merge.task_arithmetic.TaskArithmeticMerger"
+      ],
+      "definitions": {
+        "classes": [
+          "PipelineStage",
+          "PipelineMerger"
+        ],
+        "functions": [
+          "create_reasoning_pipeline",
+          "create_code_pipeline",
+          "create_balanced_pipeline",
+          "__init__",
+          "to_dict",
+          "__init__",
+          "resolve_model_reference",
+          "execute",
+          "_merge_task_arithmetic",
+          "_merge_mergekit",
+          "save_config",
+          "load_config",
+          "to_dict"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.merge.evolution",
+      "unused_definitions": [
+        "run_waterfall",
+        "__init__",
+        "EvolutionEngine"
+      ],
+      "path": "breeding_vat/modules/merge/evolution.py",
+      "imports": [
+        "breeding_vat.modules.benchmark.evaluator.BenchmarkEvaluator",
+        "os",
+        "logging",
+        "breeding_vat.modules.merge.mergekit_engine.MergekitEngine",
+        "breeding_vat.modules.merge.merger.AdvancedMerger",
+        "datetime.datetime",
+        "breeding_vat.modules.merge.advanced_toggles",
+        "breeding_vat.modules.merge.recipe_validator.PARAM_CHOICES",
+        "sqlite3",
+        "time",
+        "breeding_vat.modules.merge.mergekit_engine.MergekitConfigBuilder",
+        "gc",
+        "breeding_vat.orchestrator.runner.TaskRunner",
+        "breeding_vat.modules.merge.recipe_validator.PARAM_BOUNDS",
         "torch",
-        "transformers",
-        "accelerate",
-        "mergekit",
-        "fusion-bench",
-        "hydra-core",
-        "lightning"
+        "json",
+        "random"
       ],
-      "entrypoint": "mergekit-yaml"
-    },
-
-    "Dockerfile.mergekit": {
-      "type": "docker image definition",
-      "builds_image": "breeding-vat-mergekit:latest",
-      "note": "DEPRECATED - kept for compatibility, uses FusionCore not MergeKit",
-      "purpose": "Old merging image (being phased out)",
-      "base": "python:3.11-slim",
-      "installs": ["fusioncore", "torch", "transformers"],
-      "status": "Do not use - use Dockerfile.merge instead"
-    },
-
-    "Dockerfile.fusionbench": {
-      "type": "docker image definition",
-      "builds_image": "breeding-vat-fusionbench:latest",
-      "purpose": "FusionBench evaluation and analysis",
-      "base": "python:3.11-slim",
-      "installs": ["fusion-bench", "lm-eval", "torch", "transformers"]
-    },
-
-    "Dockerfile.eval": {
-      "type": "docker image definition",
-      "builds_image": "breeding-vat-eval:latest",
-      "purpose": "lm-eval harness - benchmark evaluation",
-      "base": "python:3.11-slim",
-      "installs": ["lm-eval-harness", "torch", "transformers"],
-      "benchmarks": ["hellaswag", "arc_challenge", "winogrande"]
-    },
-
-    "Dockerfile.sae": {
-      "type": "docker image definition",
-      "builds_image": "breeding-vat-sae:latest",
-      "purpose": "Sparse Autoencoder analysis",
-      "base": "python:3.11-slim",
-      "installs": ["transformer-lens", "einops", "torch"]
-    },
-
-    "build.sh": {
-      "type": "shell script",
-      "purpose": "Build all Docker images (Linux/Mac)"
-    },
-
-    "docker-compose.yml": {
-      "type": "compose configuration",
-      "purpose": "Multi-container orchestration (optional)"
-    }
-  },
-
-  "scripts": {
-    "path": "scripts/",
-    "purpose": "Utility scripts - Docker management, model download",
-
-    "manager.py": {
-      "type": "python script",
-      "size": "50+ KB",
-      "purpose": "Docker image/container management - core infrastructure",
-      "executable": true,
-      "entry_point": "Called by run.bat and setup.bat",
-      "commands": {
-        "run": "Start UI (reuse existing container if healthy)",
-        "rebuild": "Force rebuild all Docker images",
-        "verify": "Check environment and images",
-        "clean": "Stop and remove stopped containers",
-        "reset": "Full system reset"
-      },
-      "key_functions": [
-        "ensure_images() - verify/build Docker images",
-        "run_ui() - launch Streamlit container",
-        "image_exists() - check if Docker image present",
-        "rebuild_image() - docker build",
-        "is_container_healthy() - check container status"
-      ],
-      "images_managed": [
-        "breeding-vat-ui",
-        "breeding-vat-merge",
-        "breeding-vat-fusionbench",
-        "breeding-vat-eval",
-        "breeding-vat-sae"
-      ]
-    },
-
-    "download_models.py": {
-      "type": "python script",
-      "purpose": "Download base models from HuggingFace",
-      "models": [
-        "Qwen/Qwen2.5-0.5B-Instruct",
-        "Qwen/Qwen2.5-1.5B-Instruct",
-        "mistralai/Mistral-7B-Instruct-v0.3"
-      ],
-      "cache_dir": "~/.cache/huggingface/"
-    },
-
-    "sae_self_analysis.py": {
-      "type": "python script",
-      "purpose": "Standalone SAE analysis tool"
-    }
-  },
-
-  "docs": {
-    "path": "docs/",
-    "purpose": "Comprehensive documentation",
-
-    "guides": {
-      "path": "docs/guides/",
-      "purpose": "User-facing guides",
-
-      "ONE_CLICK_SETUP.md": {
-        "type": "documentation",
-        "audience": ["users", "new developers"],
-        "topics": ["Installation", "Setup workflow", "Troubleshooting"]
-      },
-
-      "UI_DESIGN.md": {
-        "type": "documentation",
-        "audience": ["users"],
-        "topics": ["UI features", "Design philosophy", "Interaction patterns"]
-      },
-
-      "QUICK_REFERENCE.md": {
-        "type": "documentation",
-        "audience": ["users", "developers"],
-        "topics": ["Common commands", "Troubleshooting", "FAQ"]
-      },
-
-      "STARTUP_GUIDE.md": {
-        "type": "documentation",
-        "audience": ["new users"],
-        "topics": ["Initial setup", "System requirements", "Verification"]
-      },
-
-      "FUSIONBENCH_QUICKSTART.md": {
-        "type": "documentation",
-        "recent": "NEW",
-        "audience": ["users"],
-        "topics": ["FusionBench methods", "Parameter tuning", "Examples"]
+      "definitions": {
+        "classes": [
+          "EvolutionEngine"
+        ],
+        "functions": [
+          "__init__",
+          "cleanup_vram",
+          "_advanced_params",
+          "_apply_advanced_yaml",
+          "_mutate_advanced_for_cycle",
+          "_apply_post_transforms",
+          "run_waterfall",
+          "_apply_merge_method",
+          "_apply_merge_method_raw",
+          "evaluate"
+        ]
       }
     },
-
-    "reference": {
-      "path": "docs/reference/",
-      "purpose": "Technical reference documentation",
-
-      "ARCHITECTURE.md": {
-        "type": "documentation",
-        "audience": ["developers", "architects"],
-        "topics": ["System design", "Component relationships", "Execution flow"]
-      },
-
-      "REPO_MAP.md": {
-        "type": "documentation",
-        "audience": ["developers"],
-        "topics": ["Directory structure", "File locations"]
-      },
-
-      "DOCKER_GUIDE.md": {
-        "type": "documentation",
-        "audience": ["operators", "developers"],
-        "topics": ["Container architecture", "Image management", "Networking"]
-      },
-
-      "MERGING_ROADMAP.md": {
-        "type": "documentation",
-        "audience": ["developers"],
-        "topics": ["Available merge methods", "Future capabilities", "Implementation roadmap"]
-      },
-
-      "FUSIONBENCH_INTEGRATION.md": {
-        "type": "documentation",
-        "recent": "NEW",
-        "audience": ["developers"],
-        "topics": ["FusionBench API", "Method implementation", "Extension points"]
-      },
-
-      "SAE_GUIDE.md": {
-        "type": "documentation",
-        "audience": ["developers", "researchers"],
-        "topics": ["Sparse Autoencoder analysis", "Layer introspection"]
-      },
-
-      "MODEL_ZOO.md": {
-        "type": "documentation",
-        "audience": ["users", "developers"],
-        "topics": ["Available models", "Adding new models", "Model selection"]
+    {
+      "name": "breeding_vat.modules.merge.fusionbench_engine",
+      "unused_definitions": [
+        "list_methods",
+        "dare_merge",
+        "__init__",
+        "ties_merge"
+      ],
+      "path": "breeding_vat/modules/merge/fusionbench_engine.py",
+      "imports": [
+        "yaml",
+        "logging",
+        "os",
+        "typing.Dict",
+        "typing.Optional",
+        "pathlib.Path",
+        "json",
+        "typing.List",
+        "typing.Any"
+      ],
+      "definitions": {
+        "classes": [
+          "FusionBenchConfigBuilder",
+          "FusionBenchEngine"
+        ],
+        "functions": [
+          "build_modelpool_yaml",
+          "build_cli_overrides",
+          "__init__",
+          "list_methods",
+          "_write_modelpool_yaml",
+          "run_merge",
+          "task_arithmetic_merge",
+          "regmean_merge",
+          "voting_merge",
+          "magnitude_prune_merge",
+          "frankenmerge",
+          "git_rebasin_merge",
+          "dare_merge",
+          "ties_merge"
+        ]
       }
     },
-
-    "index.md": {
-      "type": "documentation navigation",
-      "purpose": "Central hub for all documentation"
+    {
+      "name": "breeding_vat.modules.merge.merger",
+      "unused_definitions": [
+        "moe_merge",
+        "rmm_merge",
+        "get_available_methods",
+        "dare_merge",
+        "negmerge",
+        "__init__",
+        "AdvancedMerger",
+        "slerp_merge",
+        "ties_merge"
+      ],
+      "path": "breeding_vat/modules/merge/merger.py",
+      "imports": [
+        "logging",
+        "os",
+        "typing.Optional",
+        "typing.Dict",
+        "breeding_vat.modules.merge.mergekit_engine.MergekitEngine",
+        "breeding_vat.orchestrator.runner.TaskRunner",
+        "breeding_vat.modules.merge.fusionbench_engine.FusionBenchEngine",
+        "typing.List",
+        "breeding_vat.modules.merge.mergekit_engine.MergekitWrapper"
+      ],
+      "definitions": {
+        "classes": [
+          "MergeKitWrapper",
+          "AdvancedMerger"
+        ],
+        "functions": [
+          "__init__",
+          "dare_merge",
+          "ties_merge",
+          "slerp_merge",
+          "moe_merge",
+          "rmm_merge",
+          "task_arithmetic_merge",
+          "negmerge",
+          "regmean_merge",
+          "voting_merge",
+          "magnitude_prune_merge",
+          "frankenmerge",
+          "git_rebasin_merge",
+          "get_available_methods"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.merge.mergekit_engine",
+      "unused_definitions": [
+        "apply_tokenizer_mode",
+        "__init__",
+        "apply_layerwise_alpha",
+        "MergekitWrapper",
+        "apply_module_filters",
+        "apply_density",
+        "apply_per_model_weights"
+      ],
+      "path": "breeding_vat/modules/merge/mergekit_engine.py",
+      "imports": [
+        "yaml",
+        "logging",
+        "os",
+        "typing.Dict",
+        "typing.Optional",
+        "subprocess",
+        "typing.List"
+      ],
+      "definitions": {
+        "classes": [
+          "MergekitConfigBuilder",
+          "MergekitEngine",
+          "MergekitWrapper"
+        ],
+        "functions": [
+          "build_slerp_config",
+          "build_ties_config",
+          "build_dare_config",
+          "build_task_arithmetic_config",
+          "build_linear_config",
+          "build_moe_config",
+          "apply_density",
+          "apply_module_filters",
+          "apply_tokenizer_mode",
+          "apply_per_model_weights",
+          "apply_layerwise_alpha",
+          "__init__",
+          "create_config",
+          "run_merge",
+          "__init__",
+          "create_config",
+          "run_merge"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.merge.advisor",
+      "unused_definitions": [
+        "generate_recipe",
+        "auto_wing_it",
+        "MergeAdvisor",
+        "__init__",
+        "user_can_customize"
+      ],
+      "path": "breeding_vat/modules/merge/advisor.py",
+      "imports": [
+        "transformers.AutoModelForCausalLM",
+        "logging",
+        "os",
+        "typing.Dict",
+        "typing.List",
+        "typing.Optional",
+        "typing.Tuple",
+        "llama_cpp.Llama",
+        "breeding_vat.modules.sae.laser_retriever.LaSERRetriever",
+        "breeding_vat.modules.merge.recipe_validator.ValidationError",
+        "json",
+        "torch",
+        "transformers.AutoTokenizer",
+        "breeding_vat.modules.merge.recipe_validator.RecipeValidator"
+      ],
+      "definitions": {
+        "classes": [
+          "RecipeGenerator",
+          "MergeAdvisor"
+        ],
+        "functions": [
+          "generate_variants",
+          "__init__",
+          "_is_gguf",
+          "load",
+          "generate_recipes",
+          "_enhance_recipe",
+          "_get_best_params",
+          "_load_kb_context",
+          "_generate_commentary",
+          "generate_recipe",
+          "user_can_customize",
+          "auto_wing_it"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.merge.task_arithmetic",
+      "unused_definitions": [
+        "TaskArithmeticMerger",
+        "compute_delta",
+        "__init__",
+        "merge",
+        "multi_delta_merge"
+      ],
+      "path": "breeding_vat/modules/merge/task_arithmetic.py",
+      "imports": [
+        "logging",
+        "os",
+        "typing.Optional",
+        "typing.Dict",
+        "breeding_vat.modules.merge.mergekit_engine.MergekitEngine",
+        "breeding_vat.orchestrator.runner.TaskRunner",
+        "traceback",
+        "typing.List"
+      ],
+      "definitions": {
+        "classes": [
+          "TaskArithmeticMerger"
+        ],
+        "functions": [
+          "__init__",
+          "merge",
+          "multi_delta_merge",
+          "compute_delta"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.merge.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/modules/merge/__init__.py",
+      "imports": [
+        "advisor.MergeAdvisor",
+        "merger.AdvancedMerger",
+        "merger.MergeKitWrapper",
+        "evolution.EvolutionEngine"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.modules.merge.advanced_toggles",
+      "unused_definitions": [
+        "classify_module",
+        "lora_rank_prune",
+        "toggle_route",
+        "describe_toggle",
+        "dynamic_coef_sample",
+        "apply_post_transforms_streaming",
+        "layer_alpha_curve",
+        "nuslerp_variant_tensor",
+        "expand_region_alphas",
+        "alt_layer_custom_inject",
+        "bench_score_to_weights",
+        "cosine_filter"
+      ],
+      "path": "breeding_vat/modules/merge/advanced_toggles.py",
+      "imports": [
+        "typing.Iterable",
+        "re",
+        "logging",
+        "typing.Optional",
+        "typing.Dict",
+        "typing.Tuple",
+        "os",
+        "safetensors.torch.load_file",
+        "torch.Tensor",
+        "typing.Sequence",
+        "math",
+        "safetensors.torch.save_file",
+        "torch",
+        "typing.List",
+        "typing.Any",
+        "__future__.annotations",
+        "random"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "classify_module",
+          "_layer_index",
+          "layer_alpha_curve",
+          "bench_score_to_weights",
+          "dynamic_coef_sample",
+          "expand_region_alphas",
+          "gaussian_mutation",
+          "cosine_filter",
+          "lora_rank_prune",
+          "nuslerp_variant_tensor",
+          "alt_layer_custom_inject",
+          "describe_toggle",
+          "toggle_route",
+          "apply_post_transforms_streaming"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.sae.scoped_analyzer",
+      "unused_definitions": [
+        "compare_with_base",
+        "__init__",
+        "export_analysis"
+      ],
+      "path": "breeding_vat/modules/sae/scoped_analyzer.py",
+      "imports": [
+        "typing.Generator",
+        "logging",
+        "typing.Optional",
+        "typing.Dict",
+        "transformers.AutoModelForCausalLM",
+        "gc",
+        "transformers.AutoTokenizer",
+        "torch",
+        "typing.List",
+        "json",
+        "typing.Any",
+        "numpy"
+      ],
+      "definitions": {
+        "classes": [
+          "QuantizedSAEConfig",
+          "StreamingActivationBuffer",
+          "QuantizedActivationStorage",
+          "SAEScopedAnalyzer"
+        ],
+        "functions": [
+          "__init__",
+          "__init__",
+          "update_stats",
+          "get_stats",
+          "__init__",
+          "quantize",
+          "dequantize",
+          "__init__",
+          "load_model",
+          "_stream_activations",
+          "_chunk_prompts",
+          "analyze_self",
+          "_analyze_layer_streaming",
+          "_generate_analysis_prompts",
+          "_detect_emergent_behaviors",
+          "_compute_activation_stats",
+          "_cleanup_memory",
+          "compare_with_base",
+          "_compute_differences",
+          "export_analysis",
+          "hook_fn"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.sae.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/modules/sae/__init__.py",
+      "imports": [
+        "analyzer.SAEAnalyzer",
+        "scoped_analyzer.SAEScopedAnalyzer"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.modules.sae.analyzer",
+      "unused_definitions": [
+        "get_feature_importance",
+        "__init__",
+        "get_feature_descriptions",
+        "analyze",
+        "extract_features",
+        "SAEAnalyzer"
+      ],
+      "path": "breeding_vat/modules/sae/analyzer.py",
+      "imports": [
+        "logging",
+        "typing.Dict",
+        "torch",
+        "typing.List",
+        "typing.Any",
+        "numpy"
+      ],
+      "definitions": {
+        "classes": [
+          "SAEAnalyzer"
+        ],
+        "functions": [
+          "__init__",
+          "analyze",
+          "extract_features",
+          "_infer_shape",
+          "get_feature_importance",
+          "get_feature_descriptions"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.sae.laser_retriever",
+      "unused_definitions": [
+        "index_documents",
+        "__init__",
+        "retrieve",
+        "LaSERRetriever"
+      ],
+      "path": "breeding_vat/modules/sae/laser_retriever.py",
+      "imports": [
+        "logging",
+        "os",
+        "typing.Optional",
+        "transformers.AutoTokenizer",
+        "json",
+        "typing.List",
+        "torch",
+        "transformers.AutoModel",
+        "numpy"
+      ],
+      "definitions": {
+        "classes": [
+          "LaSERRetriever"
+        ],
+        "functions": [
+          "__init__",
+          "_load_model",
+          "_embed",
+          "_cosine",
+          "index_documents",
+          "load_cache",
+          "retrieve"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.assay.probe_strategies",
+      "unused_definitions": [
+        "generate_probes"
+      ],
+      "path": "breeding_vat/modules/assay/probe_strategies.py",
+      "imports": [
+        "typing.Dict",
+        "typing.List"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "direct",
+          "adversarial",
+          "edge_case",
+          "ambiguous",
+          "generate_probes"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.assay.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/modules/assay/__init__.py",
+      "imports": [
+        "analyzer.ASSAYAnalyzer",
+        "visualizer.make_constellation",
+        "probe_strategies.generate_probes",
+        "probe_strategies.STRATEGIES",
+        "visualizer.make_heatmap"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.modules.assay.analyzer",
+      "unused_definitions": [
+        "ASSAYAnalyzer",
+        "__init__",
+        "run"
+      ],
+      "path": "breeding_vat/modules/assay/analyzer.py",
+      "imports": [
+        "transformers.AutoModelForCausalLM",
+        "logging",
+        "typing.Optional",
+        "typing.Dict",
+        "breeding_vat.modules.assay.probe_strategies.STRATEGIES",
+        "gc",
+        "breeding_vat.modules.assay.probe_strategies.generate_probes",
+        "typing.Callable",
+        "torch",
+        "typing.List",
+        "transformers.AutoTokenizer",
+        "numpy"
+      ],
+      "definitions": {
+        "classes": [
+          "ASSAYAnalyzer"
+        ],
+        "functions": [
+          "__init__",
+          "load_model",
+          "run",
+          "_run_strategy",
+          "_process_question",
+          "_generate_and_capture",
+          "_score_answer",
+          "_compute_strategy_discriminativeness",
+          "_build_layer_stats",
+          "unload_model",
+          "make_hook",
+          "hook_fn"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.assay.visualizer",
+      "unused_definitions": [
+        "make_heatmap",
+        "make_constellation"
+      ],
+      "path": "breeding_vat/modules/assay/visualizer.py",
+      "imports": [
+        "plotly.graph_objects",
+        "typing.Dict",
+        "typing.Optional",
+        "numpy"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "make_heatmap",
+          "make_constellation"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.train.trainer",
+      "unused_definitions": [
+        "run_lora_fine_tuning",
+        "__init__",
+        "TrainEngine"
+      ],
+      "path": "breeding_vat/modules/train/trainer.py",
+      "imports": [
+        "transformers.AutoModelForCausalLM",
+        "logging",
+        "os",
+        "transformers.TrainingArguments",
+        "datasets.Dataset",
+        "transformers.Trainer",
+        "datasets.load_dataset",
+        "peft.get_peft_model",
+        "torch",
+        "transformers.AutoTokenizer",
+        "peft.LoraConfig"
+      ],
+      "definitions": {
+        "classes": [
+          "TrainEngine"
+        ],
+        "functions": [
+          "__init__",
+          "run_lora_fine_tuning",
+          "_create_dummy_dataset",
+          "tokenize_fn"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.train.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/modules/train/__init__.py",
+      "imports": [
+        "trainer.TrainEngine"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.modules.benchmark.goal_advisor",
+      "unused_definitions": [
+        "get_score_aggregator",
+        "__init__"
+      ],
+      "path": "breeding_vat/modules/benchmark/goal_advisor.py",
+      "imports": [
+        "transformers.AutoModelForCausalLM",
+        "logging",
+        "typing.Optional",
+        "typing.Dict",
+        "torch",
+        "typing.List",
+        "transformers.AutoTokenizer"
+      ],
+      "definitions": {
+        "classes": [
+          "GoalAdvisor"
+        ],
+        "functions": [
+          "__init__",
+          "load_ai",
+          "get_tasks_for_goal",
+          "_select_tier",
+          "_get_weights",
+          "_interpret_goal_with_llm",
+          "get_score_aggregator"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.benchmark.scope_filter",
+      "unused_definitions": [
+        "check",
+        "SCOPEFilter",
+        "__init__"
+      ],
+      "path": "breeding_vat/modules/benchmark/scope_filter.py",
+      "imports": [
+        "typing.Tuple",
+        "logging",
+        "os",
+        "json"
+      ],
+      "definitions": {
+        "classes": [
+          "SCOPEFilter"
+        ],
+        "functions": [
+          "__init__",
+          "check"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.benchmark.receipt_runner",
+      "unused_definitions": [
+        "BenchmarkRunner",
+        "__init__",
+        "run"
+      ],
+      "path": "breeding_vat/modules/benchmark/receipt_runner.py",
+      "imports": [
+        "transformers.AutoModelForCausalLM",
+        "logging",
+        "os",
+        "typing.Optional",
+        "lighteval.tasks.lighteval_task.Doc",
+        "datasets.Dataset",
+        "lighteval.models.model_config.BaseModelConfig",
+        "gc",
+        "lighteval.pipeline.EnvConfig",
+        "transformers.AutoTokenizer",
+        "typing.Callable",
+        "json",
+        "lighteval.tasks.lighteval_task.LightevalTaskConfig",
+        "torch",
+        "lighteval.pipeline.Pipeline",
+        "lighteval.metrics.metrics.Metrics",
+        "lighteval.pipeline.PipelineParameters",
+        "random"
+      ],
+      "definitions": {
+        "classes": [
+          "BenchmarkRunner"
+        ],
+        "functions": [
+          "chance_corrected_score",
+          "load_questions",
+          "__init__",
+          "run",
+          "_run_stage",
+          "_run_lighteval",
+          "_run_direct",
+          "_build_result",
+          "prompt_fn"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.benchmark.receipt_writer",
+      "unused_definitions": [
+        "write",
+        "list_receipts",
+        "__init__",
+        "ReceiptWriter"
+      ],
+      "path": "breeding_vat/modules/benchmark/receipt_writer.py",
+      "imports": [
+        "logging",
+        "os",
+        "typing.Dict",
+        "typing.Optional",
+        "datetime.datetime",
+        "json",
+        "typing.List"
+      ],
+      "definitions": {
+        "classes": [
+          "ReceiptWriter"
+        ],
+        "functions": [
+          "__init__",
+          "write",
+          "load",
+          "list_receipts",
+          "_apply_chance_correction"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.benchmark.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/modules/benchmark/__init__.py",
+      "imports": [
+        "fusion_bench_wrapper.FusionBenchWrapper",
+        "prediction_engine.MethodPredictor",
+        "receipt_writer.ReceiptWriter",
+        "receipt_runner.BenchmarkRunner",
+        "prediction_engine.ExperimentDatabase"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.modules.benchmark.fusion_bench_wrapper",
+      "unused_definitions": [
+        "run_merge_with_eval",
+        "FusionBenchWrapper",
+        "__init__"
+      ],
+      "path": "breeding_vat/modules/benchmark/fusion_bench_wrapper.py",
+      "imports": [
+        "yaml",
+        "logging",
+        "os",
+        "typing.Dict",
+        "typing.Optional",
+        "datetime.datetime",
+        "breeding_vat.orchestrator.runner.TaskRunner",
+        "traceback",
+        "json",
+        "typing.List",
+        "typing.Any"
+      ],
+      "definitions": {
+        "classes": [
+          "FusionBenchWrapper"
+        ],
+        "functions": [
+          "__init__",
+          "create_fusion_config",
+          "run_fusion",
+          "run_merge_with_eval"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.benchmark.prediction_engine",
+      "unused_definitions": [
+        "get_method_success_rate",
+        "get_top_methods_for_goal",
+        "__init__",
+        "predict_methods",
+        "MethodPredictor",
+        "log_experiment",
+        "log_scores",
+        "get_stats"
+      ],
+      "path": "breeding_vat/modules/benchmark/prediction_engine.py",
+      "imports": [
+        "logging",
+        "typing.Optional",
+        "typing.Dict",
+        "typing.Tuple",
+        "datetime.datetime",
+        "sqlite3",
+        "json",
+        "typing.List",
+        "typing.Any",
+        "numpy"
+      ],
+      "definitions": {
+        "classes": [
+          "ExperimentDatabase",
+          "MethodPredictor"
+        ],
+        "functions": [
+          "__init__",
+          "_init_schema",
+          "log_experiment",
+          "log_scores",
+          "get_experiments_for_goal",
+          "get_method_success_rate",
+          "get_top_methods_for_goal",
+          "get_stats",
+          "__init__",
+          "predict_methods",
+          "_generate_reasoning",
+          "_get_default_recommendations"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.benchmark.evaluator",
+      "unused_definitions": [
+        "BenchmarkEvaluator",
+        "__init__",
+        "evaluate"
+      ],
+      "path": "breeding_vat/modules/benchmark/evaluator.py",
+      "imports": [
+        "logging",
+        "typing.Optional",
+        "os",
+        "typing.Dict",
+        "typing.Tuple",
+        "pathlib.Path",
+        "datetime.datetime",
+        "breeding_vat.modules.benchmark.prediction_engine.ExperimentDatabase",
+        "json"
+      ],
+      "definitions": {
+        "classes": [
+          "BenchmarkEvaluator"
+        ],
+        "functions": [
+          "__init__",
+          "run_perplexity",
+          "run_lm_eval",
+          "evaluate"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.evolution.creativity_slider",
+      "unused_definitions": [
+        "run_generation",
+        "describe_slider_position",
+        "EvolutionWithCreativity",
+        "__init__"
+      ],
+      "path": "breeding_vat/modules/evolution/creativity_slider.py",
+      "imports": [
+        "numpy",
+        "logging",
+        "typing.Dict",
+        "typing.List"
+      ],
+      "definitions": {
+        "classes": [
+          "CreativitySlider",
+          "AdvisorWithCreativity",
+          "EvolutionWithCreativity"
+        ],
+        "functions": [
+          "get_config_for_slider",
+          "describe_slider_position",
+          "get_all_fusionbench_methods",
+          "__init__",
+          "generate_recipes",
+          "_get_available_methods",
+          "_generate_single_recipe",
+          "_generate_combination_recipe",
+          "_get_method_default_parameters",
+          "__init__",
+          "run_generation"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.evolution.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/modules/evolution/__init__.py",
+      "imports": [
+        "adaptive_introspection.ScopedModelIntrospection",
+        "adaptive_introspection.EvolutionWithIntrospection",
+        "evolution_with_logging.EvolutionWithLogging"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.modules.evolution.adaptive_introspection",
+      "unused_definitions": [
+        "run_generation",
+        "establish_baseline",
+        "__init__",
+        "EvolutionWithIntrospection"
+      ],
+      "path": "breeding_vat/modules/evolution/adaptive_introspection.py",
+      "imports": [
+        "logging",
+        "typing.Optional",
+        "typing.Tuple",
+        "typing.Dict",
+        "typing.List",
+        "numpy"
+      ],
+      "definitions": {
+        "classes": [
+          "ScopedModelIntrospection",
+          "EvolutionWithIntrospection"
+        ],
+        "functions": [
+          "__init__",
+          "establish_baseline",
+          "analyze_merge",
+          "_analyze_layer_changes",
+          "_calculate_layer_stability",
+          "_infer_capability_changes",
+          "_capability_indicator",
+          "_measure_stability",
+          "_detect_novel_patterns",
+          "_generate_recommendations",
+          "_generate_summary",
+          "_empty_introspection",
+          "__init__",
+          "run_generation",
+          "_extract_guidance"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.modules.evolution.evolution_with_logging",
+      "unused_definitions": [
+        "EvolutionWithLogging",
+        "__init__"
+      ],
+      "path": "breeding_vat/modules/evolution/evolution_with_logging.py",
+      "imports": [
+        "logging",
+        "os",
+        "typing.Dict",
+        "typing.Optional",
+        "datetime.datetime",
+        "typing.Callable",
+        "json",
+        "typing.List"
+      ],
+      "definitions": {
+        "classes": [
+          "EvolutionWithLogging"
+        ],
+        "functions": [
+          "__init__",
+          "run_waterfall",
+          "_log",
+          "_emit_progress"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.orchestrator.runner",
+      "unused_definitions": [
+        "__init__",
+        "log_model",
+        "TaskRunner",
+        "image_exists",
+        "run_docker_task"
+      ],
+      "path": "breeding_vat/orchestrator/runner.py",
+      "imports": [
+        "logging",
+        "os",
+        "subprocess",
+        "sqlite3",
+        "time",
+        "json",
+        "random"
+      ],
+      "definitions": {
+        "classes": [
+          "TaskRunner"
+        ],
+        "functions": [
+          "__init__",
+          "_init_db",
+          "run_docker_task",
+          "_emulate_docker_task",
+          "image_exists",
+          "log_model"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.orchestrator.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/orchestrator/__init__.py",
+      "imports": [
+        "runner.TaskRunner"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.data.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/data/__init__.py",
+      "imports": [],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.data.eval_results._ppl_check",
+      "unused_definitions": [],
+      "path": "breeding_vat/data/eval_results/_ppl_check.py",
+      "imports": [
+        "transformers.AutoModelForCausalLM",
+        "transformers.AutoTokenizer",
+        "math",
+        "torch",
+        "json",
+        "sys"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.ui.app",
+      "unused_definitions": [],
+      "path": "breeding_vat/ui/app.py",
+      "imports": [
+        "breeding_vat.modules.evolution.evolution_with_logging.EvolutionWithLogging",
+        "os",
+        "typing.Optional",
+        "breeding_vat.modules.model_transfer.ModelTransfer",
+        "subprocess",
+        "streamlit",
+        "datetime.datetime",
+        "threading",
+        "scripts.verify_advanced_toggles.run_verification",
+        "json",
+        "torch",
+        "breeding_vat.modules.benchmark.ReceiptWriter",
+        "breeding_vat.modules.recipe_executor.RecipeExecutor",
+        "breeding_vat.orchestrator.runner.TaskRunner",
+        "typing.Any",
+        "breeding_vat.modules.assay.visualizer.make_heatmap",
+        "breeding_vat.modules.merge.evolution.EvolutionEngine",
+        "breeding_vat.modules.benchmark.scope_filter.SCOPEFilter",
+        "logging",
+        "typing.Dict",
+        "breeding_vat.modules.merge.merger.AdvancedMerger",
+        "breeding_vat.modules.merge.advisor.MergeAdvisor",
+        "sqlite3",
+        "time",
+        "pandas",
+        "breeding_vat.modules.assay.ASSAYAnalyzer",
+        "math",
+        "breeding_vat.modules.assay.visualizer.make_constellation",
+        "breeding_vat.modules.sae.scoped_analyzer.SAEScopedAnalyzer",
+        "typing.List",
+        "breeding_vat.modules.experiment_manager.ExperimentManager",
+        "breeding_vat.modules.merge.advanced_toggles.describe_toggle",
+        "numpy"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "init_system",
+          "get_merging_methods",
+          "get_excitement",
+          "format_benchmark_result",
+          "log_to_ui",
+          "update_progress",
+          "build_recipe_from_ui",
+          "_find_gguf",
+          "_assay_cb",
+          "progress_callback"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.ui.model_selection_ui",
+      "unused_definitions": [
+        "render_recipe_summary",
+        "render_model_zoo_uploader",
+        "render_model_slots"
+      ],
+      "path": "breeding_vat/ui/model_selection_ui.py",
+      "imports": [
+        "typing.Optional",
+        "streamlit",
+        "typing.Dict",
+        "json",
+        "typing.List"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "render_model_zoo_uploader",
+          "render_model_slots",
+          "render_recipe_summary"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.ui.app_old",
+      "unused_definitions": [],
+      "path": "breeding_vat/ui/app_old.py",
+      "imports": [
+        "breeding_vat.modules.evolution.evolution_with_logging.EvolutionWithLogging",
+        "os",
+        "logging",
+        "streamlit",
+        "typing.Optional",
+        "datetime.datetime",
+        "threading",
+        "subprocess",
+        "breeding_vat.modules.merge.advisor.MergeAdvisor",
+        "sqlite3",
+        "time",
+        "breeding_vat.orchestrator.runner.TaskRunner",
+        "pandas",
+        "json",
+        "torch",
+        "breeding_vat.modules.sae.scoped_analyzer.SAEScopedAnalyzer",
+        "breeding_vat.modules.experiment_manager.ExperimentManager",
+        "breeding_vat.modules.merge.evolution.EvolutionEngine"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "init_system",
+          "log_to_ui",
+          "update_progress",
+          "progress_callback"
+        ]
+      }
+    },
+    {
+      "name": "breeding_vat.ui.__init__",
+      "unused_definitions": [],
+      "path": "breeding_vat/ui/__init__.py",
+      "imports": [],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
+    },
+    {
+      "name": "breeding_vat.ui.app_tab2_new",
+      "path": "breeding_vat/ui/app_tab2_new.py",
+      "error": "unexpected indent (<unknown>, line 1)"
+    },
+    {
+      "name": "docs.advisor_kb_loader",
+      "unused_definitions": [
+        "find_guide",
+        "list_all_references",
+        "answer_question",
+        "__init__",
+        "search_files",
+        "search_keyword",
+        "get_advisor_prompt",
+        "find_reference",
+        "read_file"
+      ],
+      "path": "docs/advisor_kb_loader.py",
+      "imports": [
+        "pathlib.Path",
+        "os",
+        "typing.Dict",
+        "typing.Optional",
+        "typing.Tuple",
+        "json",
+        "typing.List"
+      ],
+      "definitions": {
+        "classes": [
+          "AdvisorKnowledgeBase"
+        ],
+        "functions": [
+          "get_kb",
+          "find_guide",
+          "find_reference",
+          "answer_question",
+          "search_files",
+          "__init__",
+          "_load_manifest",
+          "get_guide",
+          "get_reference",
+          "get_quick_answer",
+          "search_by_topic",
+          "get_advisor_prompt",
+          "list_all_guides",
+          "list_all_references",
+          "read_file",
+          "search_keyword"
+        ]
+      }
+    },
+    {
+      "name": "scripts.manager",
+      "unused_definitions": [],
+      "path": "scripts/manager.py",
+      "imports": [
+        "os",
+        "logging",
+        "datetime.datetime",
+        "subprocess",
+        "time",
+        "json",
+        "sys",
+        "socket"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "image_exists",
+          "download_models",
+          "ensure_directories",
+          "ensure_images",
+          "run_ui"
+        ]
+      }
+    },
+    {
+      "name": "scripts.verify_advanced_toggles",
+      "unused_definitions": [
+        "_main_legacy"
+      ],
+      "path": "scripts/verify_advanced_toggles.py",
+      "imports": [
+        "typing.Dict",
+        "typing.Tuple",
+        "breeding_vat.modules.merge.advanced_toggles",
+        "breeding_vat.modules.recipe_executor.RecipeExecutor",
+        "breeding_vat.modules.merge.mergekit_engine.MergekitConfigBuilder",
+        "breeding_vat.modules.merge.recipe_validator.ValidationError",
+        "breeding_vat.modules.merge.recipe_validator.PARAM_BOUNDS",
+        "json",
+        "typing.List",
+        "sys",
+        "breeding_vat.modules.merge.recipe_validator.ADVANCED_TOGGLE_KEYS",
+        "__future__.annotations",
+        "breeding_vat.modules.merge.recipe_validator.RecipeValidator",
+        "random"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "_all_toggles_recipe",
+          "run_verification",
+          "main",
+          "_main_legacy"
+        ]
+      }
+    },
+    {
+      "name": "scripts.download_models",
+      "unused_definitions": [],
+      "path": "scripts/download_models.py",
+      "imports": [
+        "huggingface_hub.snapshot_download",
+        "pathlib.Path",
+        "logging",
+        "os",
+        "argparse",
+        "huggingface_hub.list_repo_files",
+        "sys",
+        "huggingface_hub.hf_hub_download"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "_pick_gguf_file",
+          "_download_gguf",
+          "_download_hf",
+          "download_models"
+        ]
+      }
+    },
+    {
+      "name": "scripts.finetune_runner",
+      "unused_definitions": [],
+      "path": "scripts/finetune_runner.py",
+      "imports": [
+        "sys",
+        "logging",
+        "os",
+        "json"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "main"
+        ]
+      }
+    },
+    {
+      "name": "scripts.sae_self_analysis",
+      "unused_definitions": [],
+      "path": "scripts/sae_self_analysis.py",
+      "imports": [
+        "pathlib.Path",
+        "logging",
+        "argparse",
+        "breeding_vat.modules.sae.scoped_analyzer.SAEScopedAnalyzer",
+        "json",
+        "sys"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "analyze_model",
+          "compare_models"
+        ]
+      }
+    },
+    {
+      "name": "scripts.smoke_test_evolution",
+      "unused_definitions": [],
+      "path": "scripts/smoke_test_evolution.py",
+      "imports": [
+        "breeding_vat.modules.evolution.evolution_with_logging.EvolutionWithLogging",
+        "logging",
+        "os",
+        "datetime.datetime",
+        "sqlite3",
+        "breeding_vat.orchestrator.runner.TaskRunner",
+        "traceback",
+        "json",
+        "sys",
+        "breeding_vat.modules.experiment_manager.ExperimentManager",
+        "breeding_vat.modules.merge.evolution.EvolutionEngine"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "run_test"
+        ]
+      }
+    },
+    {
+      "name": "scripts.state_analyzer.builder",
+      "unused_definitions": [
+        "__init__",
+        "StateBuilder",
+        "build"
+      ],
+      "path": "scripts/state_analyzer/builder.py",
+      "imports": [
+        "re",
+        "os",
+        "typing.Dict",
+        "typing.List",
+        "typing.Any",
+        "typing.Set"
+      ],
+      "definitions": {
+        "classes": [
+          "StateBuilder"
+        ],
+        "functions": [
+          "__init__",
+          "build",
+          "_process_modules",
+          "_process_docker",
+          "_process_intent",
+          "_detect_orphans",
+          "_detect_contradictions",
+          "_detect_pipelines",
+          "_trace_execution_path",
+          "_check_structural_health",
+          "_generate_review_recommendations"
+        ]
+      }
+    },
+    {
+      "name": "scripts.state_analyzer.docker_reader",
+      "unused_definitions": [
+        "get_results",
+        "analyze_specific_file",
+        "analyze_runtime",
+        "DockerReader",
+        "__init__"
+      ],
+      "path": "scripts/state_analyzer/docker_reader.py",
+      "imports": [
+        "ast",
+        "re",
+        "os",
+        "typing.Dict",
+        "subprocess",
+        "typing.List",
+        "typing.Any"
+      ],
+      "definitions": {
+        "classes": [
+          "DockerReader"
+        ],
+        "functions": [
+          "__init__",
+          "analyze_runtime",
+          "analyze_specific_file",
+          "get_results",
+          "_parse_manager",
+          "_analyze_dockerfiles",
+          "_extract_dockerfile_info",
+          "_get_docker_ps",
+          "_get_docker_images"
+        ]
+      }
+    },
+    {
+      "name": "scripts.state_analyzer.analyzer",
+      "unused_definitions": [],
+      "path": "scripts/state_analyzer/analyzer.py",
+      "imports": [
+        "builder.StateBuilder",
+        "os",
+        "argparse",
+        "docker_reader.DockerReader",
+        "code_reader.CodeReader",
+        "json",
+        "sys"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": [
+          "main"
+        ]
+      }
+    },
+    {
+      "name": "scripts.state_analyzer.code_reader",
+      "unused_definitions": [
+        "analyze_repo",
+        "get_results",
+        "__init__",
+        "CodeReader"
+      ],
+      "path": "scripts/state_analyzer/code_reader.py",
+      "imports": [
+        "ast",
+        "re",
+        "os",
+        "typing.Dict",
+        "typing.List",
+        "typing.Any",
+        "typing.Set"
+      ],
+      "definitions": {
+        "classes": [
+          "CodeReader"
+        ],
+        "functions": [
+          "__init__",
+          "analyze_repo",
+          "_analyze_python_files",
+          "_analyze_file",
+          "_analyze_markdown_files",
+          "_extract_intent_from_md",
+          "get_results"
+        ]
+      }
+    },
+    {
+      "name": "test_merge.patch_mergekit",
+      "unused_definitions": [],
+      "path": "test_merge/patch_mergekit.py",
+      "imports": [
+        "mergekit.scripts.run_yaml.main",
+        "pydantic",
+        "mergekit.plan.ConfiguredModuleArchitecture",
+        "mergekit.plan",
+        "torch",
+        "sys",
+        "mergekit.plan.ConfiguredModelArchitecture"
+      ],
+      "definitions": {
+        "classes": [],
+        "functions": []
+      }
     }
-  },
-
-  "git_setup": {
-    "path": "root/",
-    "purpose": "Git configuration",
-
-    ".gitignore": {
-      "type": "git configuration",
-      "excludes": [
-        "*.db",
-        "*.bin",
-        "*.safetensors",
-        "__pycache__",
-        ".venv",
+  ],
+  "pipelines": [
+    {
+      "name": " GET THE PIPELINE",
+      "source": "GET_IT_WORKING.md",
+      "status": "declared"
+    },
+    {
+      "name": "You have a working pipeline",
+      "source": "GET_IT_WORKING.md",
+      "status": "declared"
+    },
+    {
+      "name": "Execute waterfall evolution pipeline",
+      "source": "EXACT_CODE_CHANGES.md",
+      "status": "declared"
+    },
+    {
+      "name": "Axis Measurement Pipeline",
+      "source": "CLAUDE.md",
+      "status": "declared"
+    },
+    {
+      "name": " This full pipeline",
+      "source": "CLAUDE.md",
+      "status": "declared"
+    },
+    {
+      "name": "Never expand the default pipeline",
+      "source": "CLAUDE.md",
+      "status": "declared"
+    },
+    {
+      "name": " eval in one pipeline",
+      "source": "MERGEBENCH_ANALYSIS.md",
+      "status": "declared"
+    },
+    {
+      "name": "The evolution pipeline",
+      "source": "Architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Pipeline",
+      "source": "Architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Variable Pipeline",
+      "source": "Architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Execution flow with variable pipeline",
+      "source": "Architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Not Training Pipeline",
+      "source": "DESIGN_PHILOSOPHY.md",
+      "status": "declared"
+    },
+    {
+      "name": "The evolution pipeline",
+      "source": "architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Pipeline",
+      "source": "architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Variable Pipeline",
+      "source": "architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Execution flow with variable pipeline",
+      "source": "architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Data flow and execution pipeline",
+      "source": "README.md",
+      "status": "declared"
+    },
+    {
+      "name": "end pipeline",
+      "source": "SOURCE_OF_TRUTH.md",
+      "status": "declared"
+    },
+    {
+      "name": " PIPELINE",
+      "source": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "status": "declared"
+    },
+    {
+      "name": " Pipeline",
+      "source": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "status": "declared"
+    },
+    {
+      "name": " Treated identically to HuggingFace models in merge pipeline",
+      "source": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "status": "declared"
+    },
+    {
+      "name": " Pipeline",
+      "source": "docs/reference/ADVISOR_PIPELINE_EXPANSION.md",
+      "status": "declared"
+    },
+    {
+      "name": " Waterfall Pipeline",
+      "source": "docs/reference/SPECIALIZED_MODELS.md",
+      "status": "declared"
+    },
+    {
+      "name": " Pipeline",
+      "source": "docs/reference/BEST_BANG_FOR_BUCK.md",
+      "status": "declared"
+    },
+    {
+      "name": "The evolution pipeline",
+      "source": "docs/reference/Architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Pipeline",
+      "source": "docs/reference/Architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Variable Pipeline",
+      "source": "docs/reference/Architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Execution flow with variable pipeline",
+      "source": "docs/reference/Architecture.md",
+      "status": "declared"
+    },
+    {
+      "name": " Fuzzy extraction of system goals and pipeline",
+      "source": "scripts/state_analyzer/README.md",
+      "status": "declared"
+    }
+  ],
+  "orphan_suspects": [
+    "breeding_vat.ui.app",
+    "breeding_vat.modules.train.__init__",
+    "breeding_vat.modules.benchmark.__init__",
+    "scripts.state_analyzer.builder",
+    "breeding_vat.modules.evolution.creativity_slider",
+    "breeding_vat.configs.__init__",
+    "breeding_vat.modules.assay.__init__",
+    "scripts.state_analyzer.docker_reader",
+    "breeding_vat.modules.__init__",
+    "scripts.sae_self_analysis",
+    "test_merge.patch_mergekit",
+    "breeding_vat.ui.app_tab2_new",
+    "scripts.smoke_test_evolution",
+    "breeding_vat.__init__",
+    "breeding_vat.modules.merge.pipeline",
+    "breeding_vat.modules.sae.__init__",
+    "breeding_vat.modules.benchmark.goal_advisor",
+    "breeding_vat.modules.evolution.adaptive_introspection",
+    "breeding_vat.orchestrator.__init__",
+    "breeding_vat.ui.app_old",
+    "breeding_vat.data.__init__",
+    "breeding_vat.modules.benchmark.receipt_runner",
+    "breeding_vat.modules.benchmark.receipt_writer",
+    "breeding_vat.modules.model_zoo",
+    "breeding_vat.data.eval_results._ppl_check",
+    "scripts.manager",
+    "breeding_vat.modules.evolution.__init__",
+    "breeding_vat.modules.assay.analyzer",
+    "breeding_vat.ui.model_selection_ui",
+    "scripts.download_models",
+    "breeding_vat.modules.train.trainer",
+    "scripts.state_analyzer.analyzer",
+    "breeding_vat.modules.merge.__init__",
+    "breeding_vat.ui.__init__",
+    "breeding_vat.modules.benchmark.fusion_bench_wrapper",
+    "breeding_vat.modules.model_path_resolver",
+    "breeding_vat.modules.sae.analyzer",
+    "scripts.state_analyzer.code_reader",
+    "docs.advisor_kb_loader",
+    "scripts.finetune_runner",
+    "breeding_vat.cli"
+  ],
+  "intent_from_md": [
+    {
+      "source": "IMPLEMENTATION_COMPLETE_PHASE1.md",
+      "mentions": [
+        "run.bat",
+        "specialization",
+        "high_perplexity",
+        "arc_easy",
+        "score",
+        "perplexity",
+        "arc_challenge",
+        "eval_failure",
+        "anomalies",
+        "breeding_vat/modules/merge/evolution.py",
+        "Dict",
+        "float",
+        "breeding_vat/modules/benchmark/evaluator.py",
+        "hellaswag",
+        "raw_scores",
+        "timestamp",
+        "breeding_vat/modules/evolution/evolution_with_logging.py",
+        "perplexity_fail"
+      ],
+      "pipelines": [],
+      "summary": "# IMPLEMENTATION COMPLETE \u2014 Phase 1: Genealogy Wiring \u2705\n\n**Status**: DONE  \n**Time**: Implemented in one session  \n**Verification**: All imports successful, all files compile  \n\n---\n\n## What Was Imple..."
+    },
+    {
+      "source": "RECIPE_SYSTEM_CRITICAL_PATH.md",
+      "mentions": [
+        "app.py",
+        "ExperimentManager",
+        "RecipeExecutor",
+        "EvolutionEngine",
+        "RecipeValidator"
+      ],
+      "pipelines": [],
+      "summary": "# RECIPE_SYSTEM_CRITICAL_PATH.md\n\n**Date**: Current session  \n**Status**: Recipe system exists but NOT wired into UI execution  \n**Priority**: IMMEDIATE \u2014 this is the backbone that enables fabrication..."
+    },
+    {
+      "source": "COMPLETE_SYSTEM_STATUS.md",
+      "mentions": [],
+      "pipelines": [],
+      "summary": "# THE BREEDING VAT \u2014 COMPLETE SYSTEM STATUS & NEXT STEPS\n\n**Session Date**: Current  \n**Status**: Recipe system wired \u2705 | Genealogy integration designed \u2705 | Code ready to implement \u2705\n\n---\n\n## What Hap..."
+    },
+    {
+      "source": "SESSION_END_STATUS.md",
+      "mentions": [
+        "STATUS_CHECKLIST.md",
+        "run.bat",
+        "FINAL_SUMMARY.md",
+        "IMPLEMENTATION_COMPLETE_PHASE1.md",
+        "setup.bat",
+        "NEXT_STEPS.md",
+        "breeding_vat/ui/app.py",
+        "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+        "breeding_vat/modules/merge/evolution.py",
+        "Dict",
+        "breeding_vat/modules/benchmark/evaluator.py",
+        "breeding_vat/ui/app_tab2_new.py",
+        "breeding_vat/modules/evolution/evolution_with_logging.py"
+      ],
+      "pipelines": [],
+      "summary": "# IMPLEMENTATION STATUS \u2014 End of Session\n\n**Current State**: \u2705 PHASE 1 COMPLETE + Phase 2 Code Ready\n\n---\n\n## What's Done \u2705\n\n### Phase 1: Genealogy Wiring (COMPLETE)\n\n**3 Core Files Modified & Verifie..."
+    },
+    {
+      "source": "INTEGRATION_AND_TESTING_GUIDE.md",
+      "mentions": [
+        "run.bat",
+        "breeding_vat/ui/app_tab2_new.py",
+        "setup.bat",
+        "breeding_vat/ui/app.py"
+      ],
+      "pipelines": [],
+      "summary": "# FINAL CHECKLIST \u2014 What's Done, What's Next, How to Test\n\n---\n\n## \u2705 COMPLETED THIS SESSION\n\n- [x] Wired RecipeExecutor validation into app.py\n- [x] Updated BenchmarkEvaluator to return dict with anom..."
+    },
+    {
+      "source": "DOCUMENTATION_INDEX.md",
+      "mentions": [],
+      "pipelines": [],
+      "summary": "# DOCUMENTATION INDEX \u2014 This Session\n\n**Session**: Recipe System Wiring + Genealogy Gap Discovery  \n**Total Documentation Created**: ~2500 lines across 7 files  \n**Status**: \u2705 Recipe wired, \u2705 Genealog..."
+    },
+    {
+      "source": "GET_IT_WORKING.md",
+      "mentions": [
+        "run.bat",
+        "breeding_vat/ui/app.py",
+        "breeding_vat/modules/merge/evolution.py",
+        "breeding_vat/modules/benchmark/evaluator.py",
+        "breeding_vat/modules/evolution/evolution_with_logging.py"
+      ],
+      "pipelines": [
+        " GET THE PIPELINE",
+        "You have a working pipeline"
+      ],
+      "summary": "# GET THE PIPELINE WORKING \u2014 Complete Implementation Guide\n\n**Goal**: Go from current state \u2192 fully functional LLM evolution system  \n**Time**: 2-3 hours of implementation + 1-2 hours of local testing..."
+    },
+    {
+      "source": "map.md",
+      "mentions": [],
+      "pipelines": [],
+      "summary": "# Repository Map: The Breeding Vat\n\n```text\n.\n\u251c\u2500\u2500 breeding_vat/\n\u2502   \u251c\u2500\u2500 orchestrator/        # Core task management & DB logic\n\u2502   \u2502   \u251c\u2500\u2500 runner.py        # Docker Task Runner\n\u2502   \u2502   \u2514\u2500\u2500 ...\n\u2502   \u251c\u2500\u2500..."
+    },
+    {
+      "source": "README_IMPLEMENTATION.md",
+      "mentions": [
+        "app.py",
+        "FINAL_SUMMARY.md",
+        "IMPLEMENTATION_COMPLETE_PHASE1.md",
+        "NEXT_STEPS.md",
+        "app_tab2_new.py",
+        "breeding_vat/modules/merge/evolution.py",
+        "breeding_vat/modules/benchmark/evaluator.py",
+        "SESSION_END_STATUS.md",
+        "breeding_vat/ui/app_tab2_new.py",
+        "INTEGRATION_AND_TESTING_GUIDE.md",
+        "breeding_vat/modules/evolution/evolution_with_logging.py",
+        "benchmarks.json"
+      ],
+      "pipelines": [],
+      "summary": "# \ud83e\uddec THE BREEDING VAT \u2014 IMPLEMENTATION SUMMARY\n\n**Session**: Complete Implementation  \n**Status**: READY FOR DEPLOYMENT  \n**What's Working**: Genealogy tracking fully wired  \n**What's Next**: 3 simple ..."
+    },
+    {
+      "source": "FINAL_SUMMARY.md",
+      "mentions": [
+        "STATUS_CHECKLIST.md",
+        "EXACT_CODE_CHANGES.md",
+        "run.bat",
+        "IMPLEMENTATION_COMPLETE_PHASE1.md",
+        "setup.bat",
+        "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+        "breeding_vat/modules/merge/evolution.py",
+        "GET_IT_WORKING.md",
+        "breeding_vat/modules/benchmark/evaluator.py",
+        "breeding_vat/modules/evolution/evolution_with_logging.py"
+      ],
+      "pipelines": [],
+      "summary": "# \ud83e\uddec THE BREEDING VAT \u2014 IMPLEMENTATION COMPLETE \u2705\n\n**Date**: Current Session  \n**Status**: Phase 1 (Genealogy Wiring) COMPLETE  \n**Code Quality**: All verified, compiles, imports work  \n**Next Step**: ..."
+    },
+    {
+      "source": "QUICK_REFERENCE.md",
+      "mentions": [
+        "__init__",
+        "breeding_vat/ui/app.py",
+        "breeding_vat/test_genealogy.py",
+        "breeding_vat/modules/merge/evolution.py",
+        "breeding_vat/modules/benchmark/evaluator.py",
+        "breeding_vat/modules/experiment_manager.py",
+        "breeding_vat/modules/evolution/evolution_with_logging.py"
+      ],
+      "pipelines": [],
+      "summary": "# QUICK REFERENCE \u2014 Exact Imports & File Locations\n\nFor implementing the 5 code changes in EXACT_CODE_CHANGES.md\n\n---\n\n## File 1: evolution.py\n\n**Full path**: `breeding_vat/modules/merge/evolution.py`..."
+    },
+    {
+      "source": "MISSING_INTEGRATIONS.md",
+      "mentions": [
+        "_experiment_manager",
+        "_current_experiment"
+      ],
+      "pipelines": [],
+      "summary": "# MISSING INTEGRATIONS \u2014 Critical Gaps Found\n\n**Date**: Current session (continuation)  \n**Status**: \u274c Critical gaps identified that prevent genealogy tracking and anomaly capture\n\n---\n\n## Gap 1: Evol..."
+    },
+    {
+      "source": "EXACT_CODE_CHANGES.md",
+      "mentions": [
+        "_experiment_manager",
+        "best_model",
+        "breeding_vat/ui/app.py",
+        "_current_experiment",
+        "breeding_vat/modules/merge/evolution.py",
+        "breeding_vat/modules/benchmark/evaluator.py",
+        "breeding_vat/modules/experiment_manager.py",
+        "breeding_vat/modules/evolution/evolution_with_logging.py"
+      ],
+      "pipelines": [
+        "Execute waterfall evolution pipeline"
+      ],
+      "summary": "# EXACT CODE CHANGES \u2014 Phase 1 Completion (1.5 hours)\n\n**Goal**: Wire genealogy tracking + anomaly detection into evolution loop\n\n---\n\n## Change 1: EvolutionEngine.run_waterfall()\n\n**File**: `breeding..."
+    },
+    {
+      "source": "CLAUDE.md",
+      "mentions": [
+        "run.bat",
+        "recipe_executor.py",
+        "_apply_advanced_yaml",
+        "breeding_vat/modules/merge/recipe_validator.py",
+        "DESIGN_PHILOSOPHY.md",
+        "benchmark/evaluator.py",
+        "PromptREADME.txt",
+        "EvolutionEngine.advanced",
+        "assay_lora_targets",
+        "_apply_post_transforms",
+        "breeding_vat/modules/benchmark/receipt_writer.py",
+        "MergekitEngine.config_hook",
+        "model_zoo/",
+        "app.py",
+        "evolution_with_logging.py",
+        "Smartassistant.txt",
+        "breeding_vat/modules/sae/scoped_analyzer.py",
+        "setup.bat",
+        "Map.json",
+        "experiment_manager.py",
+        "early_failure",
+        "RecipeExecutor.build_advanced_config",
+        "QuickAssistant.txt",
+        "docs/reference/MERGING_METHODS_INVENTORY.md",
+        "breeding_vat/data/Prompts/",
+        "evolution.py",
+        "frankenmerge_layer_assignment",
+        "hidden_dim",
+        "qwenbasedbenchmarkgenerator.txt",
+        "breeding_vat/modules/recipe_executor.py",
+        "below_chance",
+        "breeding_vat/modules/merge/advanced_toggles.py",
+        "Architecture.md",
+        "breeding_vat/modules/benchmark/receipt_runner.py",
+        "benchmark/scope_filter.py",
+        "topic",
+        "mergekit_engine.py",
+        "gguf/",
+        "breeding_vat/ui/app.py",
+        "CLAUDE.md",
+        "breeding_vat/data/benchmark/general_benchmark.json",
+        "_mutate_advanced_for_cycle",
+        "strong_ceiling",
+        "breeding_vat/data/benchmark/general_benchmark.jsonl"
+      ],
+      "pipelines": [
+        "Axis Measurement Pipeline",
+        " This full pipeline",
+        "Never expand the default pipeline"
+      ],
+      "summary": "# Breeding Vat \u2014 CLAUDE.md\n## Session Notes & Standing Instructions\n\n---\n\n## \ud83d\udcda Documentation Index & Current State\n\n**Most Up-To-Date References** (as of this session):\n\n| Document | Version | Freshne..."
+    },
+    {
+      "source": "MERGEBENCH_ANALYSIS.md",
+      "mentions": [
+        "app.py",
+        "EvolutionWithLogging",
+        "EvolutionEngine"
+      ],
+      "pipelines": [
+        " eval in one pipeline"
+      ],
+      "summary": "# MERGEBENCH / Existing Tools Analysis\n\n**Question**: Would it be easier to use bits of MergeBench instead of building our own genealogy + anomaly tracking?\n\n**Answer**: YES, partially. We already HAV..."
+    },
+    {
+      "source": "STATUS_CHECKLIST.md",
+      "mentions": [
+        "_experiment_manager",
+        "_current_experiment",
+        "Dict",
+        "float"
+      ],
+      "pipelines": [],
+      "summary": "# READY TO RUN \u2014 What's Complete vs What's Next\n\n---\n\n## \u2705 IMPLEMENTED (3 files modified, 100+ lines of code)\n\n### 1. breeding_vat/modules/benchmark/evaluator.py\n**What changed**: evaluate() method\n- ..."
+    },
+    {
+      "source": "QUICKSTART.md",
+      "mentions": [
+        "scripts/manager.py",
+        "run.bat",
+        "setup.bat",
+        "breeding_vat/data/model_zoo/"
+      ],
+      "pipelines": [],
+      "summary": "# Quick Start Guide\n\n## Workflow\n\n### First Time Setup (One-Time)\n\n```\nsetup.bat  \u2192  Builds Docker images + Downloads model specimens\n              (15-30 minutes)\n```\n\nThis does:\n- Builds 5 Docker im..."
+    },
+    {
+      "source": "RECIPE_SYSTEM_WIRING_COMPLETE.md",
+      "mentions": [
+        "run.bat",
+        "metadata",
+        "evolution",
+        "evaluation",
+        "RecipeValidator"
+      ],
+      "pipelines": [],
+      "summary": "# Recipe System Wiring \u2014 Complete (Phase 1)\n\n**Status**: \u2705 UI \u2194 Recipe System Connection COMPLETE  \n**Date**: Current session  \n**What was done**: Wire RecipeExecutor validation into the UI evolution ..."
+    },
+    {
+      "source": "Architecture.md",
+      "mentions": [
+        "breeding_vat/modules/merge/merger.py",
+        "breeding_vat/modules/merge/mergekit_engine.py",
+        "breeding_vat/modules/sae/scoped_analyzer.py",
+        "breeding_vat/data/schema.sql",
+        "breeding_vat/ui/app.py",
+        "breeding_vat/modules/merge/fusionbench_engine.py",
+        "breeding_vat/modules/merge/evolution.py",
+        "breeding_vat/orchestrator/runner.py",
+        "breeding_vat/modules/experiment_manager.py",
+        "breeding_vat/modules/evolution/evolution_with_logging.py"
+      ],
+      "pipelines": [
+        "The evolution pipeline",
+        " Pipeline",
+        " Variable Pipeline",
+        " Execution flow with variable pipeline"
+      ],
+      "summary": "# The Breeding Vat: Complete Architecture\n\n**Version 2.0** - Verified January 15, 2025\n\nThis document describes the complete architecture of The Breeding Vat system. It covers:\n- System design and com..."
+    },
+    {
+      "source": "NEXT_STEPS.md",
+      "mentions": [
+        "breeding_vat/ui/app.py",
+        "run.bat",
+        "setup.bat"
+      ],
+      "pipelines": [],
+      "summary": "# WHAT TO DO NOW \u2014 Next Steps After Implementation\n\n**Current Status**: Phase 1 (Genealogy Wiring) COMPLETE \u2705  \n**Current Time**: Session end  \n**Next Action**: Build Docker + Add UI display + Test\n\n-..."
+    },
+    {
+      "source": "DESIGN_PHILOSOPHY.md",
+      "mentions": [
+        "run.bat",
+        "setup.bat"
+      ],
+      "pipelines": [
+        " Not Training Pipeline"
+      ],
+      "summary": "# Design Philosophy, Startup, & User Experience\n\n**The Breeding Vat** is a **LLM Fabricator** \u2014 a future-lab for evolving small language models. This document makes that vision explicit.\n\n---\n\n## The ..."
+    },
+    {
+      "source": "DOCUMENTATION_COMPLETE.md",
+      "mentions": [
+        "SAE_MEMORY_OPTIMIZATION.md",
+        "docs/README.md",
+        "ADVISOR_KNOWLEDGE_BASE.md",
+        "docs/KNOWLEDGE_BASE_MANIFEST.json",
+        "docs/",
+        "docs/INDEX.md",
+        "docs/reference/Architecture.md",
+        "guides/ADVISOR_KNOWLEDGE_BASE.md",
+        "MODEL_ZOO.md",
+        "docs/guides/",
+        "MERGING_METHODS_INVENTORY.md",
+        "MOE_GUIDE.md",
+        "SPECIALIZED_MODELS.md",
+        "SAE_GUIDE.md",
+        "LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+        "docs/reference/MERGING_METHODS_INVENTORY.md",
+        "LOCAL_MODEL_UPLOAD_GUIDE.md",
+        "FUSIONBENCH_QUICKSTART.md",
+        "guides/",
+        "Architecture.md",
+        "docs/advisor_kb_loader.py",
+        "KNOWLEDGE_BASE_MANIFEST.json",
+        "advisor_kb_loader.py",
+        "reference/",
+        "docs/reference/",
+        "README.md",
+        "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+      ],
+      "pipelines": [],
+      "summary": "# Documentation Organization Summary\n\n**Date**: January 15, 2025  \n**Status**: Complete and ready for production\n\n---\n\n## What Was Accomplished\n\n### 1. Cleaned Up Old Documentation\n- Deleted 16+ old r..."
+    },
+    {
+      "source": "architecture.md",
+      "mentions": [
+        "breeding_vat/modules/merge/merger.py",
+        "breeding_vat/modules/merge/mergekit_engine.py",
+        "breeding_vat/modules/sae/scoped_analyzer.py",
+        "breeding_vat/data/schema.sql",
+        "breeding_vat/ui/app.py",
+        "breeding_vat/modules/merge/fusionbench_engine.py",
+        "breeding_vat/modules/merge/evolution.py",
+        "breeding_vat/orchestrator/runner.py",
+        "breeding_vat/modules/experiment_manager.py",
+        "breeding_vat/modules/evolution/evolution_with_logging.py"
+      ],
+      "pipelines": [
+        "The evolution pipeline",
+        " Pipeline",
+        " Variable Pipeline",
+        " Execution flow with variable pipeline"
+      ],
+      "summary": "# The Breeding Vat: Complete Architecture\n\n**Version 2.0** - Verified January 15, 2025\n\nThis document describes the complete architecture of The Breeding Vat system. It covers:\n- System design and com..."
+    },
+    {
+      "source": "SESSION_SUMMARY.md",
+      "mentions": [
+        "run.bat"
+      ],
+      "pipelines": [],
+      "summary": "# SESSION SUMMARY \u2014 Complete Analysis & Roadmap\n\n**Date**: Current session (continuation after recipe system wiring)  \n**Status**: \u2705 Recipe system wired, \u274c Genealogy tracking discovered missing, \u2705 Sol..."
+    },
+    {
+      "source": "README.md",
+      "mentions": [
+        "docs/LOCAL_MODEL_UPLOAD_GUIDE.md",
+        "docs/reference/",
+        "docs/Architecture.md",
+        "config.json",
+        "breeding_vat/modules/merge/fusionbench_engine.py",
+        "AVAILABLE_METHODS",
+        "docs/",
+        "breeding_vat/data/model_zoo/",
+        "docs/guides/",
+        "docs/LOCAL_MODEL_UPLOAD_QUICKSTART.md"
+      ],
+      "pipelines": [
+        " Data flow and execution pipeline"
+      ],
+      "summary": "# The Breeding Vat: LLM Evolution Engine\n\n**The Breeding Vat** is an autonomous laboratory for evolving high-performance, small-scale language models through intelligent merging, evaluation, and selec..."
+    },
+    {
+      "source": "SOURCE_OF_TRUTH.md",
+      "mentions": [
+        "run.bat",
+        "breeding_vat/modules/model_transfer.py",
+        "breeding_vat/data/model_zoo/",
+        "status.bat",
+        "__init__.py",
+        "app.py",
+        "setup.bat",
+        "breeding_vat/orchestrator/runner.py",
+        "scripts/manager.py",
+        "TaskRunner",
+        "breeding_vat/modules/merge/merger.py",
+        "test_merge/patch_mergekit.py",
+        "HOST_PWD",
+        "system_state.json",
+        "Dockerfile.merge",
+        "docker/Dockerfile.mergekit",
+        "breeding_vat/modules/experiment_manager.py",
+        "run_docker_task",
+        "scripts/finetune_runner.py",
         "breeding_vat/data/merged_models/",
-        "breeding_vat/data/experiments/",
-        "~/.cache/huggingface/"
-      ]
+        "modules/assay",
+        "breeding_vat/data/eval_results/",
+        "breeding_vat/ui/app.py",
+        "config.json",
+        "modules/benchmark"
+      ],
+      "pipelines": [
+        "end pipeline"
+      ],
+      "summary": "# Breeding Vat \u2014 Source of Truth (ULTIMATE HANDOFF VERSION)\n\n**Purpose:** The authoritative reference for the Breeding Vat \"Spine\". This document states what actually runs, how it connects, and how to..."
     },
-
-    ".gitattributes": {
-      "type": "git configuration",
-      "purpose": "Line ending management"
+    {
+      "source": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "mentions": [
+        "run.bat",
+        "EXACT_CODE_CHANGES.md",
+        "IMPLEMENTATION_COMPLETE_PHASE1.md",
+        "QUICK_REFERENCE.md",
+        "COMPLETE_SYSTEM_STATUS.md",
+        "GET_IT_WORKING.md",
+        "float"
+      ],
+      "pipelines": [
+        " PIPELINE",
+        " Pipeline"
+      ],
+      "summary": "# \ud83c\udf89 BREEDING VAT \u2014 PIPELINE IMPLEMENTATION COMPLETE\n\n**Status**: \u2705 GENEALOGY WIRING FULLY IMPLEMENTED  \n**Time**: Completed in single session  \n**Next**: Phase 2 (UI display) + Phase 3 (Docker) + Phas..."
     },
-
-    ".gitkeep": {
-      "count": 6,
-      "purpose": "Preserve empty directories"
+    {
+      "source": "docker/README.md",
+      "mentions": [
+        "CUDA_VISIBLE_DEVICES",
+        "DOCKER_MANAGEMENT.md",
+        "breeding_vat/ui/app.py",
+        "breeding_vat/data/",
+        "breeding_vat/orchestrator/runner.py"
+      ],
+      "pipelines": [],
+      "summary": "# The Breeding Vat - Docker Setup\n\n## Architecture\n\nThe Breeding Vat uses a **lightweight orchestrator pattern**:\n\n- **UI Container** (resident): `breeding-vat-ui` runs Streamlit + orchestrator logic\n..."
+    },
+    {
+      "source": "docs/INDEX.md",
+      "mentions": [
+        "breeding_vat/modules/merge/advanced_toggles.py",
+        "mergekit_engine.py"
+      ],
+      "pipelines": [],
+      "summary": "# Documentation Index\n\nWelcome to **The Breeding Vat** documentation. All guides and technical references are organized below.\n\n## \ud83d\udccd Start Here\n\n- **[README.md](../README.md)** - Project overview and ..."
+    },
+    {
+      "source": "docs/README.md",
+      "mentions": [
+        "reference/Architecture.md",
+        "guides/ADVISOR_KNOWLEDGE_BASE.md",
+        "guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+        "KNOWLEDGE_BASE_MANIFEST.json",
+        "advisor_kb_loader.py",
+        "guides/FUSIONBENCH_QUICKSTART.md",
+        "ADVISOR_KNOWLEDGE_BASE.md",
+        "INDEX.md",
+        "reference/MERGING_METHODS_INVENTORY.md",
+        "reference/SPECIALIZED_MODELS.md",
+        "reference/",
+        "reference/SAE_GUIDE.md",
+        "guides/",
+        "guides/MOE_GUIDE.md",
+        "reference/MODEL_ZOO.md"
+      ],
+      "pipelines": [],
+      "summary": "# Documentation - The Breeding Vat\n\nWelcome to the complete documentation for **The Breeding Vat** LLM evolution engine.\n\n## \ud83d\ude80 Quick Start\n\n- **New user?** \u2192 Start with `../README.md` then go to `guid..."
+    },
+    {
+      "source": "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "mentions": [
+        "ModelPathResolver",
+        "breeding_vat/ui/app.py",
+        "config.json",
+        "AdvancedMerger",
+        "breeding_vat/data/model_zoo/",
+        "ModelTransfer"
+      ],
+      "pipelines": [],
+      "summary": "## Local Model Upload - Quick Start\n\n### One-Sentence Summary\nUsers can now upload local models to the model zoo via the Streamlit UI, and they'll be automatically available for evolution alongside Hu..."
+    },
+    {
+      "source": "docs/guides/FUSIONBENCH_QUICKSTART.md",
+      "mentions": [
+        "run.bat",
+        "setup.bat"
+      ],
+      "pipelines": [],
+      "summary": "# FusionBench Integration: Quick Start\n\n## What Changed?\n\n**You now have 20+ ways to merge models** instead of 6.\n\n- \u2705 Same setup process (`setup.bat`)\n- \u2705 Same launch process (`run.bat`)\n- \u2705 Same bas..."
+    },
+    {
+      "source": "docs/guides/MOE_GUIDE.md",
+      "mentions": [
+        "MOE_EXPERIMENTS.md",
+        "MOE_MERGING_GUIDE.md",
+        "MOE_RECIPES.md"
+      ],
+      "pipelines": [],
+      "summary": "# Frankenstein MoE Models - Interesting Combinations\n\n## Novel MoE Models to Consider\n\n### Small Efficient MoE Models (Good for Merging)\n\n#### 1. **Mixtral 8x7B-32K** (Most Compatible)\n```\nModel: mist..."
+    },
+    {
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "mentions": [
+        "guides",
+        "docs/KNOWLEDGE_BASE_MANIFEST.json",
+        "docs/",
+        "breeding_vat/data/model_zoo/",
+        "advanced_moe",
+        "docs/reference/Architecture.md",
+        "quick_answers",
+        "system_architecture",
+        "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+        "docs/reference/SPECIALIZED_MODELS.md",
+        "docs/guides/MOE_GUIDE.md",
+        "docs/guides/",
+        "sae_analysis",
+        "docs/reference/SAE_MEMORY_OPTIMIZATION.md",
+        "merge_methods_overview",
+        "docs/reference/MERGING_METHODS_INVENTORY.md",
+        "reference",
+        "docs/reference/SAE_GUIDE.md",
+        "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+        "how_to_upload_model",
+        "docs/reference/",
+        "breeding_vat/ui/app.py",
+        "available_models",
+        "docs/guides/FUSIONBENCH_QUICKSTART.md",
+        "advisor_prompts",
+        "local_models",
+        "search_index"
+      ],
+      "pipelines": [],
+      "summary": "# Advisor Knowledge Base\n\n**For the 0.8B Advisor Model**\n\nThis document helps the advisor model navigate The Breeding Vat's knowledge base and provide accurate recommendations.\n\n## Knowledge Base Loca..."
+    },
+    {
+      "source": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "mentions": [
+        "breeding_vat/modules/model_transfer.py",
+        "model_zoo/",
+        "ModelPathResolver",
+        "model.bin",
+        "tokenizer.json",
+        "breeding_vat/ui/app.py",
+        "config.json",
+        "breeding_vat/modules/model_path_resolver.py",
+        "breeding_vat/data/model_zoo/",
+        "pytorch_model.bin",
+        "model.safetensors",
+        "ModelTransfer"
+      ],
+      "pipelines": [
+        " Treated identically to HuggingFace models in merge pipeline"
+      ],
+      "summary": "# Local Model Upload Integration\n\n## Overview\n\nThe Breeding Vat now supports uploading and using local models directly in evolution experiments. Local models are:\n- **Transferred** to a central model ..."
+    },
+    {
+      "source": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "mentions": [
+        "run.bat",
+        "breeding_vat/modules/merge/mergekit_engine.py",
+        "lora_rank_prune",
+        "total_layers",
+        "similarity_threshold",
+        "mutation_sigma",
+        "base_alpha",
+        "coef_scope",
+        "topk_sparsify",
+        "gaussian_mutation",
+        "tokenizer_source",
+        "apply_module_filters",
+        "cosine_filter",
+        "apply_density",
+        "keep_percent",
+        "apply_per_model_weights",
+        "PARAM_CHOICES",
+        "docker/Dockerfile.merge",
+        "slerp_variants",
+        "t",
+        "setup.bat",
+        "dynamic_coef_sample",
+        "ValidationError",
+        "passthrough",
+        "build_passthrough_slices",
+        "embedding_mode",
+        "MergekitConfigBuilder.apply_layerwise_alpha",
+        "alt_layer_inject",
+        "gamma",
+        "breeding_vat/modules/merge/merger.py",
+        "bench_weighted_blend",
+        "slerp_variant",
+        "layer_mode",
+        "attn_mlp_filter",
+        "alpha_min/max",
+        "docs/reference/FUSIONBENCH_INTEGRATION.md",
+        "alt_pattern",
+        "normalize",
+        "retain_rank_percent",
+        "RecipeValidator._check_advanced",
+        "layerwise_alpha",
+        "mutation_target",
+        "breeding_vat/modules/merge/advanced_toggles.py",
+        "density",
+        "apply_tokenizer_mode",
+        "docs/FUSIONBENCH_INTEGRATION_SUMMARY.md",
+        "cosine_mode",
+        "breeding_vat/ui/app.py",
+        "PARAM_BOUNDS",
+        "breeding_vat/modules/merge/fusionbench_engine.py",
+        "merge_attention/mlp/norms/embeddings",
+        "sign_consensus_mask",
+        "sign_mode"
+      ],
+      "pipelines": [],
+      "summary": "# Merging Methods: Complete Inventory\n\n## Executive Summary\n\n- **Total Methods Available:** 20+\n- **From MergeKit:** 7 methods\n- **From FusionBench:** 13+ methods\n- **Added to UI:** 6 new methods (fro..."
+    },
+    {
+      "source": "docs/reference/ADVISOR_PIPELINE_EXPANSION.md",
+      "mentions": [
+        "population",
+        "trust_remote_code",
+        "lazy_unpickle",
+        "low_cpu_mem",
+        "copy_tokenizer"
+      ],
+      "pipelines": [
+        " Pipeline"
+      ],
+      "summary": "# Advisor: Pipeline Expansion Reference\n\nDense technical data for 0.8B models to understand internal 'Breeding Vat' mechanics.\n\n## \ud83e\uddec Evolution Workflow\n1. **Initialize**: Load parents (base models) in..."
+    },
+    {
+      "source": "docs/reference/SPECIALIZED_MODELS.md",
+      "mentions": [],
+      "pipelines": [
+        " Waterfall Pipeline"
+      ],
+      "summary": "# Specialized Model Collections Guide\n\n## Available Models\n\nYou now have **7 specialized models** ready for evolution:\n\n### SAE Research Models (Interpretability)\n```\nQwen/SAE-Res-Qwen3.5-2B-Base-W32K..."
+    },
+    {
+      "source": "docs/reference/SAE_MEMORY_OPTIMIZATION.md",
+      "mentions": [
+        "QuantizedActivationStorage",
+        "bitsandbytes",
+        "FP8",
+        "num_layers",
+        "INT8",
+        "num_samples",
+        "chunk_size",
+        "StreamingActivationBuffer"
+      ],
+      "pipelines": [],
+      "summary": "## Memory-Efficient SAE Implementation (2025 Research)\n\n### Overview\nThe Breeding Vat now implements cutting-edge techniques to run Sparse Autoencoder (SAE) analysis on consumer hardware (8-12GB VRAM)..."
+    },
+    {
+      "source": "docs/reference/RESEARCH_RECIPES.md",
+      "mentions": [],
+      "pipelines": [],
+      "summary": "# Research Recipes & Templates\n\nVerified \"Presets\" and strategy templates from LLM merging research papers.\n\n## \ud83e\uddea Template 1: TIES-DARE Hybrid (The \"Modern Standard\")\n- **Method**: DARE with TIES-styl..."
+    },
+    {
+      "source": "docs/reference/BEST_BANG_FOR_BUCK.md",
+      "mentions": [],
+      "pipelines": [
+        " Pipeline"
+      ],
+      "summary": "# Best Bang for Buck: 20+ Pipeline Revolutions\n\nDensely packed, data-focused improvements for VRAM reduction, speed increases, and capability boosts.\n\n## \ud83d\ude80 Implemented / Super Easy Wins (Toggles)\n\n| F..."
+    },
+    {
+      "source": "docs/reference/MERGE_RESOURCES.md",
+      "mentions": [
+        "llama.cpp",
+        "cg123/mergekit",
+        "examples/"
+      ],
+      "pipelines": [],
+      "summary": "# Merge Resources & Large Model Techniques\n\nData-focused repository of merge info and strategies for low-VRAM hardware.\n\n## \ud83d\udcc2 Data Repositories\n- **Open LLM Leaderboard**: The primary source for findi..."
+    },
+    {
+      "source": "docs/reference/Architecture.md",
+      "mentions": [
+        "breeding_vat/modules/merge/merger.py",
+        "breeding_vat/modules/merge/mergekit_engine.py",
+        "breeding_vat/modules/sae/scoped_analyzer.py",
+        "breeding_vat/data/schema.sql",
+        "breeding_vat/ui/app.py",
+        "breeding_vat/modules/merge/fusionbench_engine.py",
+        "breeding_vat/modules/merge/evolution.py",
+        "breeding_vat/orchestrator/runner.py",
+        "breeding_vat/modules/experiment_manager.py",
+        "breeding_vat/modules/evolution/evolution_with_logging.py"
+      ],
+      "pipelines": [
+        "The evolution pipeline",
+        " Pipeline",
+        " Variable Pipeline",
+        " Execution flow with variable pipeline"
+      ],
+      "summary": "# The Breeding Vat: Complete Architecture\n\n**Version 2.0** - Verified January 15, 2025\n\nThis document describes the complete architecture of The Breeding Vat system. It covers:\n- System design and com..."
+    },
+    {
+      "source": "docs/reference/MODEL_ZOO.md",
+      "mentions": [
+        "run.bat",
+        "recipes",
+        "sae_discoveries",
+        "breeding_vat/data/merged_models/",
+        "scripts/download_models.py",
+        "mutant_c0_p0_o0/",
+        "mutant_c0_p0_o1/",
+        "setup.bat",
+        "breeding_vat/data/eval_results/",
+        "mutant_c0_p0_o0.json",
+        "models",
+        "mutant_c1_p2_o1/",
+        "breeding_vat/data/breeding.db",
+        "mutant_c0_p0_o1.json"
+      ],
+      "pipelines": [],
+      "summary": "# The Breeding Vat: Startup & Directory Structure\n\n## What Gets Created\n\nWhen you run `setup.bat` and `run.bat`, the system creates this structure:\n\n```\nLLM-Self-Evolution-System-breeding-vat-init-{id..."
+    },
+    {
+      "source": "docs/reference/SAE_GUIDE.md",
+      "mentions": [
+        "SAE_MEMORY_OPTIMIZATION.md",
+        "breeding_vat/modules/sae/scoped_analyzer.py",
+        "breeding_vat/ui/app.py",
+        "num_layers",
+        "requirements.txt"
+      ],
+      "pipelines": [],
+      "summary": "## Memory-Efficient SAE Implementation - Quick Start\n\n### What's Changed?\nThe Breeding Vat now implements cutting-edge 2025 research for running SAE analysis on consumer hardware without out-of-memory..."
+    },
+    {
+      "source": "docs/reference/AI_CONCEPT_EXPLAINER.md",
+      "mentions": [],
+      "pipelines": [],
+      "summary": "# AI Concept Explainer: Data-Focused Reference\n\nCondensed facts on broader LLM concepts for 0.8B models.\n\n## \ud83c\udfd7\ufe0f Model Architectures\n- **Transformer**: Standard decoder-only (GPT style). Uses Multi-Hea..."
+    },
+    {
+      "source": "docs/developer_handover/CODEBASE_KNOWLEDGE_MAP.md",
+      "mentions": [
+        "breeding_vat/modules/merge/mergekit_engine.py",
+        "breeding_vat/modules/model_transfer.py",
+        "docker/",
+        "breeding_vat/modules/benchmark/receipt_writer.py",
+        "breeding_vat/data/schema.sql",
+        "breeding_vat/modules/sae/scoped_analyzer.py",
+        "breeding_vat/orchestrator/runner.py",
+        "scripts/manager.py",
+        "SIMULATION_MODE",
+        "breeding_vat/modules/merge/merger.py",
+        "breeding_vat/modules/assay/analyzer.py",
+        "breeding_vat/data/",
+        "breeding_vat/data/breeding.db",
+        "breeding_vat/modules/recipe_executor.py",
+        "breeding_vat/modules/experiment_manager.py",
+        "docs/developer_handover/EMULATION_GUIDE.md",
+        "breeding_vat/modules/merge/advanced_toggles.py",
+        "breeding_vat/ui/app.py",
+        "breeding_vat/modules/merge/fusionbench_engine.py",
+        "breeding_vat/modules/merge/evolution.py",
+        "breeding_vat/modules/benchmark/evaluator.py"
+      ],
+      "pipelines": [],
+      "summary": "# Breeding Vat: Codebase Knowledge Map (Handover)\n\nThis document provides a manageable, indexable directory of the Breeding Vat system for local agents.\n\n## 1. Core Logic & Merging\n- `breeding_vat/mod..."
+    },
+    {
+      "source": "docs/developer_handover/EMULATION_GUIDE.md",
+      "mentions": [
+        "TaskRunner",
+        "config.json",
+        "breeding_vat/data/eval_results/",
+        "breeding_vat/data/merged_models/"
+      ],
+      "pipelines": [],
+      "summary": "# Breeding Vat: Emulation & Debug Mode\n\nTo facilitate debugging in environments without Docker or high-end GPUs, the `TaskRunner` supports a **Simulation Mode**.\n\n## How to Enable\nSet the environment ..."
+    },
+    {
+      "source": "docs/developer_handover/architecture_notes/SPINE_SUMMARY.md",
+      "mentions": [
+        "breeding.db",
+        "ExperimentManager",
+        "breeding_vat/orchestrator/runner.py",
+        "breeding_vat/modules/merge/evolution.py",
+        "scripts/manager.py",
+        "scripts/state_analyzer/",
+        "EvolutionEngine"
+      ],
+      "pipelines": [],
+      "summary": "# Breeding Vat: Application Spine\n\n## 1. Entrypoints\n- **setup.bat / run.bat**: Canonical Windows entrypoints delegating to `scripts/manager.py`.\n- **scripts/manager.py**: Orchestrates image builds, c..."
+    },
+    {
+      "source": "scripts/state_analyzer/README.md",
+      "mentions": [
+        "run.bat",
+        "intent_from_md",
+        "orphan_suspects",
+        "build",
+        "review_recommendations",
+        "structural_health",
+        "execution_paths",
+        "runtime_truth",
+        "run",
+        "system_state.json",
+        "compose",
+        "modules",
+        "contradictions"
+      ],
+      "pipelines": [
+        " Fuzzy extraction of system goals and pipeline"
+      ],
+      "summary": "# System State Analyzer \ud83e\uddec\n\nThe **System State Analyzer** is a standalone utility designed to generate a deterministic \"shared truth\" snapshot of your repository. It maps your code structure, Docker ru..."
+    },
+    {
+      "source": "test_merge/output/README.md",
+      "mentions": [],
+      "pipelines": [],
+      "summary": "---\nbase_model: []\nlibrary_name: transformers\ntags:\n- mergekit\n- merge\n\n---\n# output\n\nThis is a merge of pre-trained language models created using [mergekit](https://github.com/cg123/mergekit).\n\n## Me..."
+    }
+  ],
+  "runtime_truth": {
+    "containers": [],
+    "images": [],
+    "networks": [],
+    "volumes": [],
+    "required_images": {
+      "breeding-vat-ui": "docker/Dockerfile.ui",
+      "breeding-vat-merge": "docker/Dockerfile.merge",
+      "breeding-vat-eval": "docker/Dockerfile.eval",
+      "breeding-vat-sae": "docker/Dockerfile.sae",
+      "breeding-vat-fusionbench": "docker/Dockerfile.fusionbench",
+      "breeding-vat-finetune": "docker/Dockerfile.finetune"
+    },
+    "canonical_run_command": {
+      "detached": true,
+      "gpu": true,
+      "ports": [],
+      "volumes": [
+        "//var/run/docker.sock:/var/run/docker.sock"
+      ],
+      "env": [],
+      "labels": [
+        "breeding_vat=true"
+      ],
+      "image": "breeding-vat-ui:latest"
+    },
+    "intent_from_scripts/manager.py": [
+      "\"docker\", \"images\", \"-q\", image_name], capture_output=True, text=True)",
+      "\"docker\", \"build\", \"-t\", name, \"-f\", dockerfile, \".\"], check=True)",
+      "\"docker\", \"run\", \"-d\", \"-p\", f\"{target_port}:8501\", \"-v\", \"//var/run/docker.sock:/var/run/docker.sock\", \"-v\", f\"{host_pwd}:/app\", \"-e\", f\"HOST_PWD={host_pwd}\", \"--gpus\", \"all\", \"--label\", \"breeding_vat=true\", \"--name\", container_name, \"breeding-vat-ui:latest\"]"
+    ],
+    "image_build_status": {
+      "breeding-vat-ui": "MISSING",
+      "breeding-vat-merge": "MISSING",
+      "breeding-vat-eval": "MISSING",
+      "breeding-vat-sae": "MISSING",
+      "breeding-vat-fusionbench": "MISSING",
+      "breeding-vat-finetune": "MISSING"
     }
   },
-
-  "summary": {
-    "total_python_modules": "50+",
-    "total_dockerfiles": 6,
-    "total_documentation_files": "20+",
-    "docker_images_built": 5,
-    "key_entry_points": [
-      "setup.bat - initial setup",
-      "run.bat - launch UI",
-      "breeding_vat/ui/app.py - Streamlit UI"
+  "contradictions": [
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "IMPLEMENTATION_COMPLETE_PHASE1.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "STATUS_CHECKLIST.md",
+      "source": "SESSION_END_STATUS.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "SESSION_END_STATUS.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "FINAL_SUMMARY.md",
+      "source": "SESSION_END_STATUS.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "IMPLEMENTATION_COMPLETE_PHASE1.md",
+      "source": "SESSION_END_STATUS.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "SESSION_END_STATUS.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "NEXT_STEPS.md",
+      "source": "SESSION_END_STATUS.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "source": "SESSION_END_STATUS.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "INTEGRATION_AND_TESTING_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "INTEGRATION_AND_TESTING_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "GET_IT_WORKING.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "FINAL_SUMMARY.md",
+      "source": "README_IMPLEMENTATION.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "IMPLEMENTATION_COMPLETE_PHASE1.md",
+      "source": "README_IMPLEMENTATION.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "NEXT_STEPS.md",
+      "source": "README_IMPLEMENTATION.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "SESSION_END_STATUS.md",
+      "source": "README_IMPLEMENTATION.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "INTEGRATION_AND_TESTING_GUIDE.md",
+      "source": "README_IMPLEMENTATION.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "benchmarks.json",
+      "source": "README_IMPLEMENTATION.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "STATUS_CHECKLIST.md",
+      "source": "FINAL_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "EXACT_CODE_CHANGES.md",
+      "source": "FINAL_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "FINAL_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "IMPLEMENTATION_COMPLETE_PHASE1.md",
+      "source": "FINAL_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "FINAL_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "source": "FINAL_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "GET_IT_WORKING.md",
+      "source": "FINAL_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "breeding_vat/test_genealogy.py",
+      "source": "QUICK_REFERENCE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "DESIGN_PHILOSOPHY.md",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "PromptREADME.txt",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "EvolutionEngine.advanced",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "MergekitEngine.config_hook",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "Smartassistant.txt",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "Map.json",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "RecipeExecutor.build_advanced_config",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "QuickAssistant.txt",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "qwenbasedbenchmarkgenerator.txt",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "Architecture.md",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "CLAUDE.md",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "breeding_vat/data/benchmark/general_benchmark.json",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "breeding_vat/data/benchmark/general_benchmark.jsonl",
+      "source": "CLAUDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "QUICKSTART.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "QUICKSTART.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "RECIPE_SYSTEM_WIRING_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "breeding_vat/data/schema.sql",
+      "source": "Architecture.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "NEXT_STEPS.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "NEXT_STEPS.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "DESIGN_PHILOSOPHY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "DESIGN_PHILOSOPHY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "SAE_MEMORY_OPTIMIZATION.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/README.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "ADVISOR_KNOWLEDGE_BASE.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/KNOWLEDGE_BASE_MANIFEST.json",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/INDEX.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/reference/Architecture.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "MODEL_ZOO.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "MERGING_METHODS_INVENTORY.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "MOE_GUIDE.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "SPECIALIZED_MODELS.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "SAE_GUIDE.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "FUSIONBENCH_QUICKSTART.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "Architecture.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "KNOWLEDGE_BASE_MANIFEST.json",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "README.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "source": "DOCUMENTATION_COMPLETE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "breeding_vat/data/schema.sql",
+      "source": "architecture.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "SESSION_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "source": "README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/Architecture.md",
+      "source": "README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "config.json",
+      "source": "README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "source": "README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "SOURCE_OF_TRUTH.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "status.bat",
+      "source": "SOURCE_OF_TRUTH.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "SOURCE_OF_TRUTH.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "system_state.json",
+      "source": "SOURCE_OF_TRUTH.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "Dockerfile.merge",
+      "source": "SOURCE_OF_TRUTH.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docker/Dockerfile.mergekit",
+      "source": "SOURCE_OF_TRUTH.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "config.json",
+      "source": "SOURCE_OF_TRUTH.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "PIPELINE_IMPLEMENTATION_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "EXACT_CODE_CHANGES.md",
+      "source": "PIPELINE_IMPLEMENTATION_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "IMPLEMENTATION_COMPLETE_PHASE1.md",
+      "source": "PIPELINE_IMPLEMENTATION_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "QUICK_REFERENCE.md",
+      "source": "PIPELINE_IMPLEMENTATION_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "COMPLETE_SYSTEM_STATUS.md",
+      "source": "PIPELINE_IMPLEMENTATION_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "GET_IT_WORKING.md",
+      "source": "PIPELINE_IMPLEMENTATION_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "DOCKER_MANAGEMENT.md",
+      "source": "docker/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "reference/Architecture.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "KNOWLEDGE_BASE_MANIFEST.json",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "guides/FUSIONBENCH_QUICKSTART.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "ADVISOR_KNOWLEDGE_BASE.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "INDEX.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "reference/MERGING_METHODS_INVENTORY.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "reference/SPECIALIZED_MODELS.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "reference/SAE_GUIDE.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "guides/MOE_GUIDE.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "reference/MODEL_ZOO.md",
+      "source": "docs/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "config.json",
+      "source": "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "docs/guides/FUSIONBENCH_QUICKSTART.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "docs/guides/FUSIONBENCH_QUICKSTART.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "MOE_EXPERIMENTS.md",
+      "source": "docs/guides/MOE_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "MOE_MERGING_GUIDE.md",
+      "source": "docs/guides/MOE_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "MOE_RECIPES.md",
+      "source": "docs/guides/MOE_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/KNOWLEDGE_BASE_MANIFEST.json",
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/reference/Architecture.md",
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/reference/SPECIALIZED_MODELS.md",
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/guides/MOE_GUIDE.md",
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/reference/SAE_MEMORY_OPTIMIZATION.md",
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/reference/SAE_GUIDE.md",
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/guides/FUSIONBENCH_QUICKSTART.md",
+      "source": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "model.bin",
+      "source": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "tokenizer.json",
+      "source": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "config.json",
+      "source": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "pytorch_model.bin",
+      "source": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "model.safetensors",
+      "source": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "docs/reference/MERGING_METHODS_INVENTORY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docker/Dockerfile.merge",
+      "source": "docs/reference/MERGING_METHODS_INVENTORY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "docs/reference/MERGING_METHODS_INVENTORY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "MergekitConfigBuilder.apply_layerwise_alpha",
+      "source": "docs/reference/MERGING_METHODS_INVENTORY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/reference/FUSIONBENCH_INTEGRATION.md",
+      "source": "docs/reference/MERGING_METHODS_INVENTORY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "RecipeValidator._check_advanced",
+      "source": "docs/reference/MERGING_METHODS_INVENTORY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/FUSIONBENCH_INTEGRATION_SUMMARY.md",
+      "source": "docs/reference/MERGING_METHODS_INVENTORY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "llama.cpp",
+      "source": "docs/reference/MERGE_RESOURCES.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "breeding_vat/data/schema.sql",
+      "source": "docs/reference/Architecture.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "docs/reference/MODEL_ZOO.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "setup.bat",
+      "source": "docs/reference/MODEL_ZOO.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "mutant_c0_p0_o0.json",
+      "source": "docs/reference/MODEL_ZOO.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "breeding_vat/data/breeding.db",
+      "source": "docs/reference/MODEL_ZOO.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "mutant_c0_p0_o1.json",
+      "source": "docs/reference/MODEL_ZOO.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "SAE_MEMORY_OPTIMIZATION.md",
+      "source": "docs/reference/SAE_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "requirements.txt",
+      "source": "docs/reference/SAE_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "breeding_vat/data/schema.sql",
+      "source": "docs/developer_handover/CODEBASE_KNOWLEDGE_MAP.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "breeding_vat/data/breeding.db",
+      "source": "docs/developer_handover/CODEBASE_KNOWLEDGE_MAP.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "docs/developer_handover/EMULATION_GUIDE.md",
+      "source": "docs/developer_handover/CODEBASE_KNOWLEDGE_MAP.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "config.json",
+      "source": "docs/developer_handover/EMULATION_GUIDE.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "breeding.db",
+      "source": "docs/developer_handover/architecture_notes/SPINE_SUMMARY.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "run.bat",
+      "source": "scripts/state_analyzer/README.md"
+    },
+    {
+      "type": "documented_but_missing",
+      "item": "system_state.json",
+      "source": "scripts/state_analyzer/README.md"
+    }
+  ],
+  "review_recommendations": [
+    {
+      "file": "breeding_vat.ui.app",
+      "reason": "Broken internal import: breeding_vat.modules.benchmark.ReceiptWriter",
+      "priority": "high",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat.ui.app",
+      "reason": "Broken internal import: breeding_vat.modules.assay.ASSAYAnalyzer",
+      "priority": "high",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "test_merge.patch_mergekit",
+      "reason": "Broken internal import: mergekit.scripts.run_yaml.main",
+      "priority": "high",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "IMPLEMENTATION_COMPLETE_PHASE1.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SESSION_END_STATUS.md",
+      "reason": "Contradiction: documented_but_missing (STATUS_CHECKLIST.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SESSION_END_STATUS.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SESSION_END_STATUS.md",
+      "reason": "Contradiction: documented_but_missing (FINAL_SUMMARY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SESSION_END_STATUS.md",
+      "reason": "Contradiction: documented_but_missing (IMPLEMENTATION_COMPLETE_PHASE1.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SESSION_END_STATUS.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SESSION_END_STATUS.md",
+      "reason": "Contradiction: documented_but_missing (NEXT_STEPS.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SESSION_END_STATUS.md",
+      "reason": "Contradiction: documented_but_missing (PIPELINE_IMPLEMENTATION_SUMMARY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "INTEGRATION_AND_TESTING_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "INTEGRATION_AND_TESTING_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "GET_IT_WORKING.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "README_IMPLEMENTATION.md",
+      "reason": "Contradiction: documented_but_missing (FINAL_SUMMARY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "README_IMPLEMENTATION.md",
+      "reason": "Contradiction: documented_but_missing (IMPLEMENTATION_COMPLETE_PHASE1.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "README_IMPLEMENTATION.md",
+      "reason": "Contradiction: documented_but_missing (NEXT_STEPS.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "README_IMPLEMENTATION.md",
+      "reason": "Contradiction: documented_but_missing (SESSION_END_STATUS.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "README_IMPLEMENTATION.md",
+      "reason": "Contradiction: documented_but_missing (INTEGRATION_AND_TESTING_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "README_IMPLEMENTATION.md",
+      "reason": "Contradiction: documented_but_missing (benchmarks.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "FINAL_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (STATUS_CHECKLIST.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "FINAL_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (EXACT_CODE_CHANGES.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "FINAL_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "FINAL_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (IMPLEMENTATION_COMPLETE_PHASE1.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "FINAL_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "FINAL_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (PIPELINE_IMPLEMENTATION_SUMMARY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "FINAL_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (GET_IT_WORKING.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "QUICK_REFERENCE.md",
+      "reason": "Contradiction: documented_but_missing (breeding_vat/test_genealogy.py)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (DESIGN_PHILOSOPHY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (PromptREADME.txt)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (EvolutionEngine.advanced)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (MergekitEngine.config_hook)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (Smartassistant.txt)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (Map.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (RecipeExecutor.build_advanced_config)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (QuickAssistant.txt)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (docs/reference/MERGING_METHODS_INVENTORY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (qwenbasedbenchmarkgenerator.txt)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (Architecture.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (CLAUDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (breeding_vat/data/benchmark/general_benchmark.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "CLAUDE.md",
+      "reason": "Contradiction: documented_but_missing (breeding_vat/data/benchmark/general_benchmark.jsonl)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "QUICKSTART.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "QUICKSTART.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "RECIPE_SYSTEM_WIRING_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "Architecture.md",
+      "reason": "Contradiction: documented_but_missing (breeding_vat/data/schema.sql)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "NEXT_STEPS.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "NEXT_STEPS.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DESIGN_PHILOSOPHY.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DESIGN_PHILOSOPHY.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (SAE_MEMORY_OPTIMIZATION.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (docs/README.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (ADVISOR_KNOWLEDGE_BASE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (docs/KNOWLEDGE_BASE_MANIFEST.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (docs/INDEX.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (docs/reference/Architecture.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (guides/ADVISOR_KNOWLEDGE_BASE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (MODEL_ZOO.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (MERGING_METHODS_INVENTORY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (MOE_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (SPECIALIZED_MODELS.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (SAE_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (LOCAL_MODEL_UPLOAD_QUICKSTART.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (docs/reference/MERGING_METHODS_INVENTORY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (LOCAL_MODEL_UPLOAD_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (FUSIONBENCH_QUICKSTART.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (Architecture.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (KNOWLEDGE_BASE_MANIFEST.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (README.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "DOCUMENTATION_COMPLETE.md",
+      "reason": "Contradiction: documented_but_missing (docs/guides/ADVISOR_KNOWLEDGE_BASE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "architecture.md",
+      "reason": "Contradiction: documented_but_missing (breeding_vat/data/schema.sql)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SESSION_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "README.md",
+      "reason": "Contradiction: documented_but_missing (docs/LOCAL_MODEL_UPLOAD_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "README.md",
+      "reason": "Contradiction: documented_but_missing (docs/Architecture.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "README.md",
+      "reason": "Contradiction: documented_but_missing (config.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "README.md",
+      "reason": "Contradiction: documented_but_missing (docs/LOCAL_MODEL_UPLOAD_QUICKSTART.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SOURCE_OF_TRUTH.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SOURCE_OF_TRUTH.md",
+      "reason": "Contradiction: documented_but_missing (status.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SOURCE_OF_TRUTH.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SOURCE_OF_TRUTH.md",
+      "reason": "Contradiction: documented_but_missing (system_state.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SOURCE_OF_TRUTH.md",
+      "reason": "Contradiction: documented_but_missing (Dockerfile.merge)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SOURCE_OF_TRUTH.md",
+      "reason": "Contradiction: documented_but_missing (docker/Dockerfile.mergekit)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "SOURCE_OF_TRUTH.md",
+      "reason": "Contradiction: documented_but_missing (config.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (EXACT_CODE_CHANGES.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (IMPLEMENTATION_COMPLETE_PHASE1.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (QUICK_REFERENCE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (COMPLETE_SYSTEM_STATUS.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "PIPELINE_IMPLEMENTATION_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (GET_IT_WORKING.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docker/README.md",
+      "reason": "Contradiction: documented_but_missing (DOCKER_MANAGEMENT.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (reference/Architecture.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (guides/ADVISOR_KNOWLEDGE_BASE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (KNOWLEDGE_BASE_MANIFEST.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (guides/FUSIONBENCH_QUICKSTART.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (ADVISOR_KNOWLEDGE_BASE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (INDEX.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (reference/MERGING_METHODS_INVENTORY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (reference/SPECIALIZED_MODELS.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (reference/SAE_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (guides/MOE_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/README.md",
+      "reason": "Contradiction: documented_but_missing (reference/MODEL_ZOO.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md",
+      "reason": "Contradiction: documented_but_missing (config.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/FUSIONBENCH_QUICKSTART.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/FUSIONBENCH_QUICKSTART.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/MOE_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (MOE_EXPERIMENTS.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/MOE_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (MOE_MERGING_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/MOE_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (MOE_RECIPES.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "reason": "Contradiction: documented_but_missing (docs/KNOWLEDGE_BASE_MANIFEST.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "reason": "Contradiction: documented_but_missing (docs/reference/Architecture.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "reason": "Contradiction: documented_but_missing (docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "reason": "Contradiction: documented_but_missing (docs/reference/SPECIALIZED_MODELS.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "reason": "Contradiction: documented_but_missing (docs/guides/MOE_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "reason": "Contradiction: documented_but_missing (docs/reference/SAE_MEMORY_OPTIMIZATION.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "reason": "Contradiction: documented_but_missing (docs/reference/MERGING_METHODS_INVENTORY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "reason": "Contradiction: documented_but_missing (docs/reference/SAE_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "reason": "Contradiction: documented_but_missing (docs/guides/LOCAL_MODEL_UPLOAD_QUICKSTART.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/ADVISOR_KNOWLEDGE_BASE.md",
+      "reason": "Contradiction: documented_but_missing (docs/guides/FUSIONBENCH_QUICKSTART.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (model.bin)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (tokenizer.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (config.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (pytorch_model.bin)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/guides/LOCAL_MODEL_UPLOAD_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (model.safetensors)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "reason": "Contradiction: documented_but_missing (docker/Dockerfile.merge)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "reason": "Contradiction: documented_but_missing (MergekitConfigBuilder.apply_layerwise_alpha)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "reason": "Contradiction: documented_but_missing (docs/reference/FUSIONBENCH_INTEGRATION.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "reason": "Contradiction: documented_but_missing (RecipeValidator._check_advanced)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MERGING_METHODS_INVENTORY.md",
+      "reason": "Contradiction: documented_but_missing (docs/FUSIONBENCH_INTEGRATION_SUMMARY.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MERGE_RESOURCES.md",
+      "reason": "Contradiction: documented_but_missing (llama.cpp)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/Architecture.md",
+      "reason": "Contradiction: documented_but_missing (breeding_vat/data/schema.sql)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MODEL_ZOO.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MODEL_ZOO.md",
+      "reason": "Contradiction: documented_but_missing (setup.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MODEL_ZOO.md",
+      "reason": "Contradiction: documented_but_missing (mutant_c0_p0_o0.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MODEL_ZOO.md",
+      "reason": "Contradiction: documented_but_missing (breeding_vat/data/breeding.db)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/MODEL_ZOO.md",
+      "reason": "Contradiction: documented_but_missing (mutant_c0_p0_o1.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/SAE_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (SAE_MEMORY_OPTIMIZATION.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/reference/SAE_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (requirements.txt)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/developer_handover/CODEBASE_KNOWLEDGE_MAP.md",
+      "reason": "Contradiction: documented_but_missing (breeding_vat/data/schema.sql)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/developer_handover/CODEBASE_KNOWLEDGE_MAP.md",
+      "reason": "Contradiction: documented_but_missing (breeding_vat/data/breeding.db)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/developer_handover/CODEBASE_KNOWLEDGE_MAP.md",
+      "reason": "Contradiction: documented_but_missing (docs/developer_handover/EMULATION_GUIDE.md)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/developer_handover/EMULATION_GUIDE.md",
+      "reason": "Contradiction: documented_but_missing (config.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/developer_handover/architecture_notes/SPINE_SUMMARY.md",
+      "reason": "Contradiction: documented_but_missing (breeding.db)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "scripts/state_analyzer/README.md",
+      "reason": "Contradiction: documented_but_missing (run.bat)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "scripts/state_analyzer/README.md",
+      "reason": "Contradiction: documented_but_missing (system_state.json)",
+      "priority": "medium",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat/modules/model_zoo.py",
+      "reason": "High dead code count (8 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat/modules/experiment_manager.py",
+      "reason": "High dead code count (11 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat/modules/model_transfer.py",
+      "reason": "High dead code count (6 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat/modules/recipe_executor.py",
+      "reason": "High dead code count (11 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat/modules/merge/pipeline.py",
+      "reason": "High dead code count (7 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat/modules/merge/merger.py",
+      "reason": "High dead code count (9 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat/modules/merge/mergekit_engine.py",
+      "reason": "High dead code count (7 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat/modules/merge/advanced_toggles.py",
+      "reason": "High dead code count (12 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat/modules/sae/analyzer.py",
+      "reason": "High dead code count (6 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "breeding_vat/modules/benchmark/prediction_engine.py",
+      "reason": "High dead code count (8 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    },
+    {
+      "file": "docs/advisor_kb_loader.py",
+      "reason": "High dead code count (9 unused definitions)",
+      "priority": "low",
+      "suggested_tool": "aider"
+    }
+  ],
+  "structural_health": {
+    "broken_imports": [
+      {
+        "module": "breeding_vat.ui.app",
+        "import": "breeding_vat.modules.benchmark.ReceiptWriter"
+      },
+      {
+        "module": "breeding_vat.ui.app",
+        "import": "breeding_vat.modules.assay.ASSAYAnalyzer"
+      },
+      {
+        "module": "test_merge.patch_mergekit",
+        "import": "mergekit.scripts.run_yaml.main"
+      }
     ],
-    "generated_at_runtime": [
-      "breeding_vat/data/breeding.db",
-      "breeding_vat/data/experiments/",
-      "breeding_vat/configs/",
-      "breeding_vat/data/merged_models/"
-    ]
+    "module_depth": 0,
+    "complexity_score": 0
   }
 }

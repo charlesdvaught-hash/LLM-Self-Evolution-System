@@ -1,0 +1,29 @@
+================================================================================
+EXPERIMENT: Reasoning_at_1B_scale_2026-05-14_080417
+================================================================================
+Goal: Reasoning at 1B scale
+Base Models: Qwen/Qwen2.5-0.5B-Instruct, Qwen/Qwen2.5-1.5B-Instruct
+Merge Methods: slerp, ties
+Planned Cycles: 2
+Created: 2026-05-14T08:04:17.920225
+================================================================================
+
+
+================================================================================
+EVOLUTION RUN STARTED
+Resume from cycle: 0
+Total cycles: 2
+Base models: Qwen/Qwen2.5-0.5B-Instruct, Qwen/Qwen2.5-1.5B-Instruct
+Merge methods: slerp, ties
+Culling rate: 50%
+================================================================================
+
+[08:04:18] Evolution complete! Best model: Qwen/Qwen2.5-0.5B-Instruct (score: 0.0000)
+
+================================================================================
+EXPERIMENT COMPLETED
+Completed at: 2026-05-14T08:04:18.812795
+Best model: Qwen/Qwen2.5-0.5B-Instruct
+Best score: 0.0000
+Cycles completed: 2
+================================================================================

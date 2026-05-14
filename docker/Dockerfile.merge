@@ -14,4 +14,8 @@ RUN pip install --no-cache-dir \
 # FusionBench: 15+ advanced merging methods
 RUN pip install --no-cache-dir fusion-bench hydra-core lightning
 
-ENTRYPOINT ["mergekit-yaml"]
+# Copy the wrapper script
+COPY scripts/mergekit_wrapper.py /app/scripts/mergekit_wrapper.py
+
+# Use the wrapper as entrypoint to apply the patch automatically
+ENTRYPOINT ["python", "/app/scripts/mergekit_wrapper.py"]

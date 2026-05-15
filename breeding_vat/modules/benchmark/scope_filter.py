@@ -91,18 +91,22 @@ class SCOPEFilter:
         eval_dir = "breeding_vat/data/eval_results"
         os.makedirs(eval_dir, exist_ok=True)
 
-        script_host = os.path.join(eval_dir, "_scope_check.py")
+        script_host = os.path.join("breeding_vat/modules/benchmark/scripts", "_scope_check.py")
         verdict_host = os.path.join(eval_dir, f"{model_name}_scope.json")
 
-        script_container = "/app/data/eval_results/_scope_check.py"
+        script_container = "/app/modules/benchmark/scripts/_scope_check.py"
         verdict_container = f"/app/data/eval_results/{model_name}_scope.json"
         model_container = f"/app/data/merged_models/{model_name}"
 
         try:
+            os.makedirs(os.path.dirname(script_host), exist_ok=True)
             with open(script_host, "w") as f:
                 f.write(_SCOPE_SCRIPT)
 
-            volumes = {"breeding_vat/data": "/app/data"}
+            volumes = {
+                "breeding_vat/data": "/app/data",
+                "breeding_vat/modules/benchmark/scripts": "/app/modules/benchmark/scripts"
+            }
             command = ["python", script_container, model_container, verdict_container]
 
             self.runner.run_docker_task("breeding-vat-eval:latest", command, volumes=volumes)
@@ -115,9 +119,15 @@ class SCOPEFilter:
                 logger.info(f"SCOPE [{model_name}]: {'PASS' if passed else 'FAIL'} — {reason}")
                 return passed, reason
 
-            logger.warning(f"SCOPE verdict missing for {model_name}, defaulting to pass")
+            if not self.runner.simulation_mode:
+                logger.error(f"SCOPE verdict missing for {model_name} - Infrastructure failure")
+                return False, "verdict missing (Infrastructure failure)"
+
+            logger.warning(f"SCOPE verdict missing for {model_name}, defaulting to pass (Simulation)")
             return True, "verdict missing (defaulting to pass)"
 
         except Exception as e:
             logger.error(f"SCOPE check error for {model_name}: {e}")
+            if not self.runner.simulation_mode:
+                return False, f"Infrastructure error: {e}"
             return True, f"infra error ({e}), defaulting to pass"

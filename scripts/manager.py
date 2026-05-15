@@ -71,6 +71,10 @@ def ensure_images():
 
 def run_ui():
     if SIMULATION_MODE:
+        logger.warning("!" * 60)
+        logger.warning("!  SIMULATION MODE ACTIVE - RESULTS ARE MOCKED                  !")
+        logger.warning("!  Docker tasks will be bypassed. No models will be merged.    !")
+        logger.warning("!" * 60)
         logger.info("🚀 [SIMULATION MODE] Starting Streamlit UI locally.")
         # Ensure current dir is in pythonpath
         env = os.environ.copy()

@@ -123,20 +123,28 @@ class BenchmarkEvaluator:
         Defaults to (True, 0.0, "skipped") on infra failure so we never
         silently block good models.
         """
-        script_host = os.path.join(self.eval_dir, "_ppl_check.py")
+        script_host = os.path.join("breeding_vat/modules/benchmark/scripts", "_ppl_check.py")
         verdict_host = os.path.join(self.eval_dir, f"{model_name}_ppl.json")
-        script_ctr = "/app/data/eval_results/_ppl_check.py"
+
+        # We need to mount the script dir as well
+        script_container = "/app/modules/benchmark/scripts/_ppl_check.py"
         verdict_ctr = f"/app/data/eval_results/{model_name}_ppl.json"
         model_ctr = f"/app/data/merged_models/{model_name}"
 
         try:
+            os.makedirs(os.path.dirname(script_host), exist_ok=True)
             with open(script_host, "w") as f:
                 f.write(_PERPLEXITY_SCRIPT)
 
+            volumes = {
+                "breeding_vat/data": "/app/data",
+                "breeding_vat/modules/benchmark/scripts": "/app/modules/benchmark/scripts"
+            }
+
             self.runner.run_docker_task(
                 "breeding-vat-eval:latest",
-                ["python", script_ctr, model_ctr, verdict_ctr],
-                volumes={"breeding_vat/data": "/app/data"},
+                ["python", script_container, model_ctr, verdict_ctr],
+                volumes=volumes,
                 gpus="all",
             )
 
@@ -146,8 +154,12 @@ class BenchmarkEvaluator:
 
         except Exception as e:
             logger.error(f"Perplexity check failed for {model_name}: {e}")
+            # In live mode, an infra error is a failure.
+            # In simulation mode, TaskRunner should have prevented this.
+            if not self.runner.simulation_mode:
+                return False, 9999.0, f"Infrastructure error: {e}"
 
-        return True, 0.0, "check skipped (infra error)"
+        return True, 0.0, "check skipped (infra error or unknown state)"
 
     # ------------------------------------------------------------------
     # Tier 1-3: lm-eval

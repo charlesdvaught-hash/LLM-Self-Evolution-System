@@ -120,6 +120,17 @@ if 'runner' not in st.session_state:
         st.error(f"System initialization failed: {e}")
         st.stop()
 
+# Simulation Warning Banner (Must be after initialization)
+if st.session_state.runner.simulation_mode:
+    st.warning("⚠️ **SIMULATION MODE ACTIVE** — Docker tasks are emulated. Results are randomized and no actual models are merged.")
+    st.markdown("""
+    <div style="background-color: #ff4b4b22; border: 1px solid #ff4b4b; padding: 10px; border-radius: 5px; margin-bottom: 20px;">
+        <span style="color: #ff4b4b; font-weight: bold;">[DEV ONLY]</span>
+        The system is running in simulation mode because <code>SIMULATION_MODE=true</code> is set.
+        No GPU or Docker resources will be used.
+    </div>
+    """, unsafe_allow_html=True)
+
 if 'advisor_history' not in st.session_state:
     st.session_state.advisor_history = []
 

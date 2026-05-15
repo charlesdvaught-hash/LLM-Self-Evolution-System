@@ -90,4 +90,4 @@ export SIMULATION_MODE=true
 
 ---
 
-**Last Updated:** 2026-05-14 by Jules (Simulation Mode & Spine Fixes)
+**Last Updated:** 2025-05-15 by Jules (Simulation Mode Safeguards & UI Warning)

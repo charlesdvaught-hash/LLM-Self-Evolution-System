@@ -30,6 +30,17 @@ The `manager.py` script bypasses Docker existence checks when in simulation mode
 - **Run**: `run_ui()` executes `streamlit run` directly in the local process instead of starting a container.
 - **Potential Flaw**: This hides dependencies missing from the *host* environment that are present in the *Dockerfile*. If the app runs in simulation but fails in production, check `requirements.txt` vs the `Dockerfile.*` contents.
 
+## 4. Safety & Delineation (NEW)
+
+To prevent users from accidentally operating in Simulation Mode and mistaking mocked data for real progress, several safeguards have been implemented:
+
+1.  **UI Banner**: A persistent, high-visibility warning banner appears at the top of the Streamlit UI whenever `SIMULATION_MODE=true`.
+2.  **Console Warning**: `scripts/manager.py` emits a large ASCII warning block when starting the UI in simulation mode.
+3.  **Strict Live Failures**: In Live Mode (`SIMULATION_MODE=false`), any infrastructure failure (e.g., Docker not responding, missing result files) is now a **hard failure**. The system no longer "fails open" to a successful result to keep the pipeline moving.
+4.  **Metadata Tagging**: Emulated models and results are tagged with `_is_mock: true` or `"mock": true` in their respective JSON artifacts.
+
+> **Important**: Emulation is intended for developer verification and CI pipelines where GPUs/Docker are unavailable. It must NEVER be used for actual model production.
+
 ## 3. MergeKit Pydantic Patch (`test_merge/patch_mergekit.py`)
 
 A known issue exists where MergeKit's Pydantic models with `ForwardRef` fail in some Python 3.10+ environments.
